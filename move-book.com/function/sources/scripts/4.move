@@ -11,5 +11,10 @@ script {
     debug::print<u64>(&num1);
     debug::print<u64>(&num2);
     debug::print<u64>(&num3);
+
+    let id1 = ExampleCalling::id(0);
+    let id2 = ExampleCalling::id(@0x1);
+    debug::print<u64>(&id1);
+    debug::print<address>(&id2);
   }
 }
