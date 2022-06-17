@@ -1,2 +1,4 @@
 build
 storage
+.coverage_map.mvcov
+.trace
