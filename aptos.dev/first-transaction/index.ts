@@ -142,4 +142,27 @@ export class RestClient {
       }
     }
   }
+
+  /** Returns the test coin balance associated with the account */
+  async accountBalance(accountAddress: string): Promise<number | null> {
+    const resource = await this.accountResource(accountAddress, "0x1::Coin::CoinStore<0x1::TestCoin::TestCoin>")
+    if (resource == null) {
+      return null;
+    }
+    return parseInt(resource["data"]["coin"]["value"])
+  }
+
+  /**
+   * Transfer a given coin amount from a given Account to the recipient's account address.
+   * Returns the sequence number of the transaction used to transfer
+   */
+  async transfer(accountFrom: Account, recipient: string, amount: number): Promise<string> {
+    const payload: { function: string, arguments: string[], type: string; type_arguments: any[] } = {
+      type: "script_function_payload",
+      function: "0x1::Coin::transfer",
+      type_arguments: ["0x1::TestCoin::TestCoin"],
+      arguments: [`0x${recipient}`, amount.toString()]
+    }
+    return await this.executeTransactionWithPayload(accountFrom, payload)
+  }
 }
