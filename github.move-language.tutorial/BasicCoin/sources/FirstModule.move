@@ -56,4 +56,63 @@ module 0xCAFE::BasicCoin {
     // Increment the value by `amount`
     *balance_ref = balance + value;
   }
+
+  #[test(account = @0x1)]
+  #[expected_failure]
+  fun mint_non_owner(account: signer) acquires Balance {
+    publish_balance(&account);
+    mint(&account, @0x1, 10);
+  }
+
+  #[test(account = @0xCAFE)]
+  fun mint_check_balance(account: signer) acquires Balance {
+    let addr = signer::address_of(&account);
+    publish_balance(&account);
+    mint(&account, @0xCAFE, 42);
+    assert!(balance_of(addr) == 42, 0);
+  }
+
+  #[test(account = @0x1)]
+  fun publish_balance_has_zero(account: signer) acquires Balance {
+    let addr = signer::address_of(&account);
+    publish_balance(&account);
+    assert!(balance_of(addr) == 0, 0);
+  }
+
+  #[test(account = @0x1)]
+  #[expected_failure(abort_code = 518)]
+  fun publish_balance_already_exists(account: signer) {
+    publish_balance(&account);
+    publish_balance(&account);
+  }
+
+  #[test]
+  #[expected_failure]
+  fun balance_of_dne() acquires Balance {
+    balance_of(@0x1);
+  }
+
+  #[test]
+  #[expected_failure]
+  fun withdraw_dne() acquires Balance {
+    Coin { value: _ } = withdraw(@0x1, 0);
+  }
+
+  #[test(account = @0x1)]
+  #[expected_failure]
+  fun withdraw_too_much(account: signer) acquires Balance {
+    let addr = signer::address_of(&account);
+    publish_balance(&account);
+    Coin { value: _ } = withdraw(addr, 1);
+  }
+
+  #[test(account = @0xCAFE)]
+  fun can_withdraw_amount(account: signer) acquires Balance {
+    publish_balance(&account);
+    let amount = 1000;
+    let addr = signer::address_of(&account);
+    mint(&account, addr, amount);
+    let Coin { value } = withdraw(addr, amount);
+    assert!(value == amount, 0);
+  }
 }
