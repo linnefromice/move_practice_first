@@ -37,4 +37,41 @@ module BasicCoin::BasicCoin {
 
     ensures balance_post == amount;
   }
+
+  public fun mint<CoinType: drop>(mint_addr: address, amount: u64, _witness: CoinType) acquires Balance {
+    deposit(mint_addr, Coin<CoinType> { value: amount });
+  }
+
+  spec mint {
+    include DepositSchema<CoinType> { addr: mint_addr, amount }
+  }
+
+  fun deposit<CoinType>(addr: address, check: Coin<CoinType>) acquires Balance {
+    let balance = balance_of<CoinType>(addr);
+    let balance_ref = &mut borrow_global_mut<Balance<CoinType>>(addr).coin.value;
+    let Coin { value } = check;
+    *balance_ref = balance + value;
+  }
+
+  spec deposit {
+    let balance = global<Balance<CoinType>>(addr).coin.value;
+    let check_value = check.value;
+
+    aborts_if !exists<Balance<CoinType>>(addr);
+    aborts_if balance + check_value > MAX_U64;
+
+    let post balance_post = global<Balance<CoinType>>(addr).coin.value;
+    ensures balance_post == balance + check_value;
+  }
+  spec schema DepositSchema<CoinType> {
+    addr: address;
+    amount: u64;
+    let balance = global<Balance<CoinType>>(addr).coin.value;
+
+    aborts_if !exists<Balance<CoinType>>(addr);
+    aborts_if balance + amount > MAX_U64;
+
+    let post balance_post = global<Balance<CoinType>>(addr).coin.value;
+    ensures balance_post == balance + amount;
+  }
 }
