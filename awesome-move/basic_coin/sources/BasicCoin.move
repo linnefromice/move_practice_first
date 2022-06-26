@@ -43,7 +43,43 @@ module BasicCoin::BasicCoin {
   }
 
   spec mint {
-    include DepositSchema<CoinType> { addr: mint_addr, amount }
+    include DepositSchema<CoinType> { addr: mint_addr, amount };
+  }
+
+  public fun burn<CoinType: drop>(burn_addr: address, amount: u64, _witness: CoinType) acquires Balance {
+    let Coin { value: _ } = withdraw<CoinType>(burn_addr, amount);
+  }
+
+  spec burn {
+    // TBD
+  }
+
+  public fun balance_of<CoinType>(owner: address): u64 acquires Balance {
+    borrow_global<Balance<CoinType>>(owner).coin.value
+  }
+
+  spec balance_of {
+     pragma aborts_if_is_strict;
+     aborts_if !exists<Balance<CoinType>>(owner);
+  }
+
+  fun withdraw<CoinType>(addr: address, amount: u64): Coin<CoinType> acquires Balance {
+    let balance = balance_of<CoinType>(addr);
+    assert!(balance >= amount, ESUFFICIENT_BALANCE);
+    let balance_ref = &mut borrow_global_mut<Balance<CoinType>>(addr).coin.value;
+    *balance_ref = balance - amount;
+    Coin<CoinType> { value: amount }
+  }
+
+  spec withdraw {
+    let balance = global<Balance<CoinType>>(addr).coin.value;
+
+    aborts_if !exists<Balance<CoinType>>(addr);
+    aborts_if balance < amount;
+
+    let post balance_post = global<Balance<CoinType>>(addr).coin.value;
+    ensures result == Coin<CoinType> { value: amount };
+    ensures balance_post == balance - amount;
   }
 
   fun deposit<CoinType>(addr: address, check: Coin<CoinType>) acquires Balance {
