@@ -63,6 +63,31 @@ module BasicCoin::BasicCoin {
      aborts_if !exists<Balance<CoinType>>(owner);
   }
 
+  public fun transfer<CoinType: drop>(from: &signer, to: address, amount: u64, _witness: CoinType) acquires Balance {
+    let from_addr = signer::address_of(from);
+    assert!(from_addr != to, EEQUAL_ADDR);
+    let check = withdraw<CoinType>(from_addr, amount);
+    deposit<CoinType>(to, check);
+  }
+
+  spec transfer {
+    let addr_from = signer::address_of(from);
+
+    let balance_from = global<Balance<CoinType>>(addr_from).coin.value;
+    let balance_to = global<Balance<CoinType>>(to).coin.value;
+    let post balance_from_post = global<Balance<CoinType>>(addr_from).coin.value;
+    let post balance_to_post = global<Balance<CoinType>>(to).coin.value;
+
+    aborts_if !exists<Balance<CoinType>>(addr_from);
+    aborts_if !exists<Balance<CoinType>>(to);
+    aborts_if balance_from < amount;
+    aborts_if balance_to + amount > MAX_U64;
+    aborts_if addr_from == to;
+
+    ensures balance_from_post == balance_from - amount;
+    ensures balance_to_post == balance_to + amount;
+  }
+
   fun withdraw<CoinType>(addr: address, amount: u64): Coin<CoinType> acquires Balance {
     let balance = balance_of<CoinType>(addr);
     assert!(balance >= amount, ESUFFICIENT_BALANCE);
