@@ -40,6 +40,25 @@ module TicketTutorial::Tickets {
     Vector::length<ConcertTicket>(&venue.available_tickets)
   }
 
+  fun get_ticket_info(venue_owner_addr: address, seat: vector<u8>): (bool, vector<u8>, u64, u64) acquires Venue {
+    assert!(exists<Venue>(venue_owner_addr), ENO_VENUE);
+    let venue = borrow_global<Venue>(venue_owner_addr);
+    let i = 0;
+    let len = Vector::length<ConcertTicket>(&venue.available_tickets);
+    while (i < len) {
+      let ticket = Vector::borrow<ConcertTicket>(&venue.available_tickets, i);
+      if (ticket.seat == seat) return (true, ticket.ticket_code, ticket.price, i);
+      i = i + 1;
+    };
+    return (false, b"", 0, 0)
+  }
+
+  public fun get_ticket_price(venue_owner_addr: address, seat: vector<u8>): (bool, u64) acquires Venue {
+    let (success, _, price, _) = get_ticket_info(venue_owner_addr, seat);
+    assert!(success, EINVALID_TICKET);
+    return (success, price)
+  }
+
   #[test(venue_owner = @0x1)]
   public(script) fun sender_can_create_ticket(venue_owner: signer) acquires Venue {
     let venue_owner_addr = Signer::address_of(&venue_owner);
@@ -55,5 +74,10 @@ module TicketTutorial::Tickets {
 
     // verify we have 3 tickets now
     assert!(available_ticket_count(venue_owner_addr) == 3, EINVALID_TICKET_COUNT);
+
+    // verify seat and price
+    let (success, price) = get_ticket_price(venue_owner_addr, b"A24");
+    assert!(success, EINVALID_TICKET);
+    assert!(price == 15, EINVALID_PRICE);
   }
 }
