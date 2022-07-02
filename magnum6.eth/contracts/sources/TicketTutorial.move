@@ -134,6 +134,8 @@ module TicketTutorial::Tickets {
     assert!(Coin::balance<TestCoin>(buyer_addr) == 85, EINVALID_BALANCE);
     assert!(Coin::balance<TestCoin>(venue_owner_addr) == 15, EINVALID_BALANCE);
     assert!(available_ticket_count(venue_owner_addr) == 2, EINVALID_TICKET_COUNT);
+    let envelope = borrow_global<TicketEnvelope>(buyer_addr);
+    assert!(Vector::length<ConcertTicket>(&envelope.tickets) == 1, EINVALID_TICKET_COUNT);
 
     // buy a second ticket and confirm account balance changes
     purchase_ticket(&buyer, venue_owner_addr, b"A26");
@@ -141,5 +143,7 @@ module TicketTutorial::Tickets {
     assert!(Coin::balance<TestCoin>(buyer_addr) == 65, EINVALID_BALANCE);
     assert!(Coin::balance<TestCoin>(venue_owner_addr) == 35, EINVALID_BALANCE);
     assert!(available_ticket_count(venue_owner_addr) == 1, EINVALID_TICKET_COUNT);
+    let envelope_2nd = borrow_global<TicketEnvelope>(buyer_addr);
+    assert!(Vector::length<ConcertTicket>(&envelope_2nd.tickets) == 2, EINVALID_TICKET_COUNT);
   }
 }
