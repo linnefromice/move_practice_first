@@ -1,15 +1,16 @@
 module TicketTutorial::Tickets {
   use std::Signer;
   use std::Vector;
+  use AptosFramework::Coin;
+  use AptosFramework::TestCoin::TestCoin;
+
+  #[test_only]
   use AptosFramework::Coin::{
-    Self,
     BurnCapability,
     MintCapability
   };
-  use AptosFramework::TestCoin::{
-    Self as TestCoinModule,
-    TestCoin
-  };
+  #[test_only]
+  use AptosFramework::TestCoin as TestCoinModule;
 
   struct ConcertTicket has key, store {
     seat: vector<u8>,

@@ -10,5 +10,5 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
 [addresses]
 std = "0x1"
 AptosFramework = "0x1"
-TicketTutorial = "0x2"
+TicketTutorial = "0xc68e289e234810b81b801068b6e7fc9b34ca921218c5028a8f430c8a9f0e5d28"
 CoreResources = "0xA550C18"
