@@ -34,7 +34,6 @@ module TicketTutorial::Tickets {
 	const EINVALID_PRICE: u64 = 5;
 	const EMAX_SEATS: u64 = 6;
 	const EINVALID_BALANCE: u64 = 7;
-  const ETEST: u64 = 99;
 
   public fun init_venue(venue_owner: &signer, max_seats: u64) {
     move_to<Venue>(venue_owner, Venue { available_tickets: Vector::empty<ConcertTicket>(), max_seats })
@@ -97,7 +96,7 @@ module TicketTutorial::Tickets {
   }
 
   #[test(venue_owner = @0x11, buyer = @0x12, faucet = @AptosFramework, core_resource = @CoreResources)]
-  public(script) fun sender_can_create_ticket(venue_owner: signer, buyer: signer, faucet: signer, core_resource: signer) acquires Venue {
+  public(script) fun sender_can_create_ticket(venue_owner: signer, buyer: signer, faucet: signer, core_resource: signer) acquires Venue, TicketEnvelope {
     let venue_owner_addr = Signer::address_of(&venue_owner);
 
     // initialize the venue
@@ -122,14 +121,25 @@ module TicketTutorial::Tickets {
     move_to(&faucet, FakeMoneyCapabilities { mint_cap, burn_cap });
     Coin::register_internal<TestCoin>(&venue_owner);
     Coin::register_internal<TestCoin>(&buyer);
-    let amount = 1000;
+    let amount = 100;
     let buyer_addr = Signer::address_of(&buyer);
     let coin_for_buyer = Coin::withdraw<TestCoin>(&core_resource, amount);
     // let coin_for_buyer = Coin::mint<TestCoin>(amount, &mint_cap); // <- Invalid return
     Coin::deposit<TestCoin>(buyer_addr, coin_for_buyer);
-    assert!(Coin::balance<TestCoin>(buyer_addr) == 1000, ETEST);
+    assert!(Coin::balance<TestCoin>(buyer_addr) == 100, EINVALID_BALANCE);
 
-    // buy a ticket and confirm account balance changes
-    // -> TODO
+    // buy a first ticket and confirm account balance changes
+    purchase_ticket(&buyer, venue_owner_addr, b"A24");
+    assert!(exists<TicketEnvelope>(buyer_addr), ENO_ENVELOPE);
+    assert!(Coin::balance<TestCoin>(buyer_addr) == 85, EINVALID_BALANCE);
+    assert!(Coin::balance<TestCoin>(venue_owner_addr) == 15, EINVALID_BALANCE);
+    assert!(available_ticket_count(venue_owner_addr) == 2, EINVALID_TICKET_COUNT);
+
+    // buy a second ticket and confirm account balance changes
+    purchase_ticket(&buyer, venue_owner_addr, b"A26");
+    assert!(exists<TicketEnvelope>(buyer_addr), ENO_ENVELOPE);
+    assert!(Coin::balance<TestCoin>(buyer_addr) == 65, EINVALID_BALANCE);
+    assert!(Coin::balance<TestCoin>(venue_owner_addr) == 35, EINVALID_BALANCE);
+    assert!(available_ticket_count(venue_owner_addr) == 1, EINVALID_TICKET_COUNT);
   }
 }
