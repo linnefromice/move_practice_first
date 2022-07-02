@@ -1,6 +1,15 @@
 module TicketTutorial::Tickets {
   use std::Signer;
   use std::Vector;
+  use AptosFramework::Coin::{
+    Self,
+    BurnCapability,
+    MintCapability
+  };
+  use AptosFramework::TestCoin::{
+    Self as TestCoinModule,
+    TestCoin
+  };
 
   struct ConcertTicket has key, store {
     seat: vector<u8>,
@@ -13,6 +22,10 @@ module TicketTutorial::Tickets {
     max_seats: u64,
   }
 
+  struct TicketEnvelope has key {
+    tickets: vector<ConcertTicket>
+  }
+
   const ENO_VENUE: u64 = 0;
   const ENO_TICKETS: u64 = 1;
   const ENO_ENVELOPE: u64 = 2;
@@ -21,6 +34,7 @@ module TicketTutorial::Tickets {
 	const EINVALID_PRICE: u64 = 5;
 	const EMAX_SEATS: u64 = 6;
 	const EINVALID_BALANCE: u64 = 7;
+  const ETEST: u64 = 99;
 
   public fun init_venue(venue_owner: &signer, max_seats: u64) {
     move_to<Venue>(venue_owner, Venue { available_tickets: Vector::empty<ConcertTicket>(), max_seats })
@@ -59,8 +73,31 @@ module TicketTutorial::Tickets {
     return (success, price)
   }
 
-  #[test(venue_owner = @0x1)]
-  public(script) fun sender_can_create_ticket(venue_owner: signer) acquires Venue {
+  public fun purchase_ticket(buyer: &signer, venue_owner_addr: address, seat: vector<u8>) acquires Venue, TicketEnvelope {
+    let buyer_addr = Signer::address_of(buyer);
+    let (success, _, price, index) = get_ticket_info(venue_owner_addr, seat);
+    assert!(success, EINVALID_TICKET);
+
+    let venue = borrow_global_mut<Venue>(venue_owner_addr);
+    // Coin::transfer<TestCoin>(buyer, venue_owner_addr, price); // Invalid call to '(AptosFramework=0x1)::Coin::transfer'
+    let coin = Coin::withdraw<TestCoin>(buyer, price);
+    Coin::deposit(venue_owner_addr, coin);
+    let ticket = Vector::remove<ConcertTicket>(&mut venue.available_tickets, index);
+    if (!exists<TicketEnvelope>(buyer_addr)) {
+      move_to<TicketEnvelope>(buyer, TicketEnvelope { tickets: Vector::empty<ConcertTicket>() });
+    };
+    let envelope = borrow_global_mut<TicketEnvelope>(buyer_addr);
+    Vector::push_back<ConcertTicket>(&mut envelope.tickets, ticket);
+  }
+
+  #[test_only]
+  struct FakeMoneyCapabilities has key {
+    mint_cap: MintCapability<TestCoin>,
+    burn_cap: BurnCapability<TestCoin>,
+  }
+
+  #[test(venue_owner = @0x11, buyer = @0x12, faucet = @AptosFramework, core_resource = @CoreResources)]
+  public(script) fun sender_can_create_ticket(venue_owner: signer, buyer: signer, faucet: signer, core_resource: signer) acquires Venue {
     let venue_owner_addr = Signer::address_of(&venue_owner);
 
     // initialize the venue
@@ -79,5 +116,20 @@ module TicketTutorial::Tickets {
     let (success, price) = get_ticket_price(venue_owner_addr, b"A24");
     assert!(success, EINVALID_TICKET);
     assert!(price == 15, EINVALID_PRICE);
+
+    // initialize & fund account to buy tickets
+    let (mint_cap, burn_cap) = TestCoinModule::initialize(&faucet, &core_resource);
+    move_to(&faucet, FakeMoneyCapabilities { mint_cap, burn_cap });
+    Coin::register_internal<TestCoin>(&venue_owner);
+    Coin::register_internal<TestCoin>(&buyer);
+    let amount = 1000;
+    let buyer_addr = Signer::address_of(&buyer);
+    let coin_for_buyer = Coin::withdraw<TestCoin>(&core_resource, amount);
+    // let coin_for_buyer = Coin::mint<TestCoin>(amount, &mint_cap); // <- Invalid return
+    Coin::deposit<TestCoin>(buyer_addr, coin_for_buyer);
+    assert!(Coin::balance<TestCoin>(buyer_addr) == 1000, ETEST);
+
+    // buy a ticket and confirm account balance changes
+    // -> TODO
   }
 }

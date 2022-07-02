@@ -11,3 +11,4 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
 std = "0x1"
 AptosFramework = "0x1"
 TicketTutorial = "0x2"
+CoreResources = "0xA550C18"
