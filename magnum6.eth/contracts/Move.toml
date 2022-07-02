@@ -1,0 +1,14 @@
+[package]
+name = "tutorial"
+version = "0.0.0"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "main" }
+#MoveStdlib = { git = "https://github.com/move-language/move.git", subdir = "language/move-stdlib", rev = "main" }
+#MoveStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/move-stdlib/", rev = "main" }
+
+[addresses]
+std = "0x1"
+AptosFramework = "0x1"
+TicketTutorial = "0xc68e289e234810b81b801068b6e7fc9b34ca921218c5028a8f430c8a9f0e5d28"
+CoreResources = "0xA550C18"
