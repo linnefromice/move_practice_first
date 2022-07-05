@@ -25,8 +25,12 @@ module Sample::SampleCoin {
   }
 
   public fun transfer(from: &signer, to: address, amount: u64) acquires SampleCoin {
+    assert!(amount > 0, EINVALID_VALUE);
     let from_address = signer::address_of(from);
+    assert!(exists<SampleCoin>(from_address), ENOT_HAS_COIN);
+    assert!(exists<SampleCoin>(to), ENOT_HAS_COIN);
     let from_coin = borrow_global_mut<SampleCoin>(from_address);
+    assert!(from_coin.value >= amount, EINVALID_VALUE);
     from_coin.value = from_coin.value - amount;
     let to_coin = borrow_global_mut<SampleCoin>(to);
     to_coin.value = to_coin.value + amount;
@@ -76,5 +80,36 @@ module Sample::SampleCoin {
     transfer(from, signer::address_of(to), 70);
     assert!(borrow_global<SampleCoin>(from_address).value == 30, 0);
     assert!(borrow_global<SampleCoin>(to_address).value == 70, 0);
+    transfer(from, signer::address_of(to), 20);
+    assert!(borrow_global<SampleCoin>(from_address).value == 10, 0);
+    assert!(borrow_global<SampleCoin>(to_address).value == 90, 0);
+    transfer(from, signer::address_of(to), 10);
+    assert!(borrow_global<SampleCoin>(from_address).value == 0, 0);
+    assert!(borrow_global<SampleCoin>(to_address).value == 100, 0);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 2)]
+  fun test_transfer_when_use_insufficient_arg(from: &signer, to: &signer) acquires SampleCoin {
+    transfer(from, signer::address_of(to), 0);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 3)]
+  fun test_transfer_when_no_coin_in_from(from: &signer, to: &signer) acquires SampleCoin {
+    publish_coin(to);
+    transfer(from, signer::address_of(to), 1);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 3)]
+  fun test_transfer_when_no_coin_in_to(from: &signer, to: &signer) acquires SampleCoin {
+    publish_coin(from);
+    transfer(from, signer::address_of(to), 1);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 2)]
+  fun test_transfer_when_amount_over_balance(from: &signer, to: &signer) acquires SampleCoin {
+    publish_coin(from);
+    publish_coin(to);
+    mint(from, 10);
+    transfer(from, signer::address_of(to), 20);
   }
 }
