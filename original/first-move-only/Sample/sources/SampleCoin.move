@@ -2,7 +2,8 @@ module Sample::SampleCoin {
   use std::signer;
 
   const EALREADY_HAS_COIN: u64 = 1;
-  const ENOT_HAS_COIN: u64 = 2;
+  const EINVALID_VALUE: u64 = 2;
+  const ENOT_HAS_COIN: u64 = 3;
 
   struct SampleCoin has key {
     value: u64
@@ -16,10 +17,19 @@ module Sample::SampleCoin {
   }
 
   public fun mint(account: &signer, amount: u64) acquires SampleCoin {
+    assert!(amount > 0, EINVALID_VALUE);
     let account_address = signer::address_of(account);
     assert!(exists<SampleCoin>(account_address), ENOT_HAS_COIN);
     let coin_ref = borrow_global_mut<SampleCoin>(account_address);
     coin_ref.value = coin_ref.value + amount;
+  }
+
+  public fun transfer(from: &signer, to: address, amount: u64) acquires SampleCoin {
+    let from_address = signer::address_of(from);
+    let from_coin = borrow_global_mut<SampleCoin>(from_address);
+    from_coin.value = from_coin.value - amount;
+    let to_coin = borrow_global_mut<SampleCoin>(to);
+    to_coin.value = to_coin.value + amount;
   }
 
   #[test(user = @0x2)]
@@ -37,13 +47,34 @@ module Sample::SampleCoin {
     publish_coin(user);
   }
 
-  #[test(user = @0x2, )]
+  #[test(user = @0x2)]
   fun test_mint(user: &signer) acquires SampleCoin {
     publish_coin(user);
-    let amount = 100;
-    mint(user, amount);
+    mint(user, 100);
     let user_address = signer::address_of(user);
     let coin_ref = borrow_global<SampleCoin>(user_address);
     assert!(coin_ref.value == 100, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 2)]
+  fun test_mint_when_use_insufficient_arg(user: &signer) acquires SampleCoin {
+    mint(user, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 3)]
+  fun test_mint_when_no_resource(user: &signer) acquires SampleCoin {
+    mint(user, 100);
+  }
+
+  #[test(from = @0x2, to = @0x3)]
+  fun test_transfer(from: &signer, to: &signer) acquires SampleCoin {
+    publish_coin(from);
+    publish_coin(to);
+    mint(from, 100);
+    let from_address = signer::address_of(from);
+    let to_address = signer::address_of(to);
+    transfer(from, signer::address_of(to), 70);
+    assert!(borrow_global<SampleCoin>(from_address).value == 30, 0);
+    assert!(borrow_global<SampleCoin>(to_address).value == 70, 0);
   }
 }
