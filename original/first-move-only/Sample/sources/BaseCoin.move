@@ -24,6 +24,14 @@ module Sample::BaseCoin {
     coin_ref.value = coin_ref.value + amount;
   }
 
+  public fun transfer<CoinType>(from: &signer, to: address, amount: u64) acquires Coin {
+    let from_address = signer::address_of(from);
+    let from_coin_ref = borrow_global_mut<Coin<CoinType>>(from_address);
+    from_coin_ref.value = from_coin_ref.value - amount;
+    let to_coin_ref = borrow_global_mut<Coin<CoinType>>(to);
+    to_coin_ref.value = to_coin_ref.value + amount;
+  }
+
   #[test_only]
   struct TestCoin {}
   #[test_only]
@@ -62,5 +70,23 @@ module Sample::BaseCoin {
   #[expected_failure(abort_code = 3)]
   fun test_mint_when_no_resource(user: &signer) acquires Coin {
     mint<TestCoin>(user, 100);
+  }
+
+  #[test(from = @0x2, to = @0x3)]
+  fun test_transfer(from: &signer, to: &signer) acquires Coin {
+    publish_coin<TestCoin>(from);
+    publish_coin<TestCoin>(to);
+    mint<TestCoin>(from, 100);
+    let from_address = signer::address_of(from);
+    let to_address = signer::address_of(to);
+    transfer<TestCoin>(from, to_address, 70);
+    assert!(borrow_global<Coin<TestCoin>>(from_address).value == 30, 0);
+    assert!(borrow_global<Coin<TestCoin>>(to_address).value == 70, 0);
+    transfer<TestCoin>(from, to_address, 20);
+    assert!(borrow_global<Coin<TestCoin>>(from_address).value == 10, 0);
+    assert!(borrow_global<Coin<TestCoin>>(to_address).value == 90, 0);
+    transfer<TestCoin>(from, to_address, 10);
+    assert!(borrow_global<Coin<TestCoin>>(from_address).value == 0, 0);
+    assert!(borrow_global<Coin<TestCoin>>(to_address).value == 100, 0);
   }
 }
