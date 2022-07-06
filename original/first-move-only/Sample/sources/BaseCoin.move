@@ -25,8 +25,12 @@ module Sample::BaseCoin {
   }
 
   public fun transfer<CoinType>(from: &signer, to: address, amount: u64) acquires Coin {
+    assert!(amount > 0, EINVALID_VALUE);
     let from_address = signer::address_of(from);
+    assert!(exists<Coin<CoinType>>(from_address), ENOT_HAS_COIN);
+    assert!(exists<Coin<CoinType>>(to), ENOT_HAS_COIN);
     let from_coin_ref = borrow_global_mut<Coin<CoinType>>(from_address);
+    assert!(from_coin_ref.value >= amount, EINVALID_VALUE);
     from_coin_ref.value = from_coin_ref.value - amount;
     let to_coin_ref = borrow_global_mut<Coin<CoinType>>(to);
     to_coin_ref.value = to_coin_ref.value + amount;
@@ -88,5 +92,30 @@ module Sample::BaseCoin {
     transfer<TestCoin>(from, to_address, 10);
     assert!(borrow_global<Coin<TestCoin>>(from_address).value == 0, 0);
     assert!(borrow_global<Coin<TestCoin>>(to_address).value == 100, 0);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 2)]
+  fun test_transfer_when_use_insufficient_arg(from: &signer, to: &signer) acquires Coin {
+    transfer<TestCoin>(from, signer::address_of(to), 0);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 3)]
+  fun test_transfer_when_no_coin_in_from(from: &signer, to: &signer) acquires Coin {
+    publish_coin<TestCoin>(to);
+    transfer<TestCoin>(from, signer::address_of(to), 1);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 3)]
+  fun test_transfer_when_no_coin_in_to(from: &signer, to: &signer) acquires Coin {
+    publish_coin<TestCoin>(from);
+    transfer<TestCoin>(from, signer::address_of(to), 1);
+  }
+  #[test(from = @0x2, to = @0x3)]
+  #[expected_failure(abort_code = 2)]
+  fun test_transfer_when_amount_over_balance(from: &signer, to: &signer) acquires Coin {
+    publish_coin<TestCoin>(from);
+    publish_coin<TestCoin>(to);
+    mint<TestCoin>(from, 10);
+    transfer<TestCoin>(from, signer::address_of(to), 20);
   }
 }
