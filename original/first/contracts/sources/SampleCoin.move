@@ -23,4 +23,38 @@ module Mega::SampleCoin {
     let coin_ref = borrow_global_mut<SampleCoin>(account_address);
     coin_ref.value = coin_ref.value + amount;
   }
+
+    #[test(user = @0x2)]
+  fun test_publish_coin(user: &signer) acquires SampleCoin {
+    publish_coin(user);
+    let user_address = signer::address_of(user);
+    assert!(exists<SampleCoin>(user_address), 0);
+    let coin_ref = borrow_global<SampleCoin>(user_address);
+    assert!(coin_ref.value == 0, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 1)]
+  fun test_not_double_publish_coin(user: &signer) {
+    publish_coin(user);
+    publish_coin(user);
+  }
+
+  #[test(user = @0x2)]
+  fun test_mint(user: &signer) acquires SampleCoin {
+    publish_coin(user);
+    mint(user, 100);
+    let user_address = signer::address_of(user);
+    let coin_ref = borrow_global<SampleCoin>(user_address);
+    assert!(coin_ref.value == 100, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 2)]
+  fun test_mint_when_use_insufficient_arg(user: &signer) acquires SampleCoin {
+    mint(user, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 3)]
+  fun test_mint_when_no_resource(user: &signer) acquires SampleCoin {
+    mint(user, 100);
+  }
 }
