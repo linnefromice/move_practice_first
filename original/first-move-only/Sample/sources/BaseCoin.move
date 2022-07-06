@@ -2,6 +2,7 @@ module Sample::BaseCoin {
   use std::signer;
 
   const EALREADY_HAS_COIN: u64 = 1;
+  const EINVALID_VALUE: u64 = 2;
   const ENOT_HAS_COIN: u64 = 3;
 
   struct Coin<phantom CoinType> has key {
@@ -16,6 +17,7 @@ module Sample::BaseCoin {
   }
 
   public fun mint<CoinType>(account: &signer, amount: u64) acquires Coin {
+    assert!(amount > 0, EINVALID_VALUE);
     let account_address = signer::address_of(account);
     assert!(exists<Coin<CoinType>>(account_address), ENOT_HAS_COIN);
     let coin_ref = borrow_global_mut<Coin<CoinType>>(account_address);
@@ -50,5 +52,15 @@ module Sample::BaseCoin {
     let user_address = signer::address_of(user);
     let coin_ref = borrow_global<Coin<TestCoin>>(user_address);
     assert!(coin_ref.value == 100, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 2)]
+  fun test_mint_when_use_insufficient_arg(user: &signer) acquires Coin {
+    mint<TestCoin>(user, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 3)]
+  fun test_mint_when_no_resource(user: &signer) acquires Coin {
+    mint<TestCoin>(user, 100);
   }
 }
