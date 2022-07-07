@@ -1,0 +1,14 @@
+---
+profiles:
+  testnet:
+    private_key: "0xTBD"
+    public_key: "0xTBD"
+    account: ...
+    rest_url: "https://fullnode.devnet.aptoslabs.com/"
+    faucet_url: "https://faucet.devnet.aptoslabs.com/"
+  default:
+    private_key: "0xTBD"
+    public_key: "0xTBD"
+    account: ...
+    rest_url: "https://fullnode.devnet.aptoslabs.com/"
+    faucet_url: "https://faucet.devnet.aptoslabs.com/"

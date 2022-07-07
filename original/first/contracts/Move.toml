@@ -1,0 +1,10 @@
+[package]
+name = "First"
+version = "0.0.0"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "main" }
+
+[addresses]
+std = "0x1"
+Mega = "0x52c97a4604ebf18e2afd563b4c926010216b7f4708df03092859edfa0cc72a09"

@@ -1,0 +1,17 @@
+### https://raw.github.com/github/gitignore/e89e04390435f1e7628740d7b4ce1fe65ac218fd/Global/VisualStudioCode.gitignore
+
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+# Aptos
+.aptos/config.yaml
