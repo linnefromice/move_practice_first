@@ -15,6 +15,9 @@ module Mega::SampleCoinSecond {
     assert!(!exists<SampleCoinSecond>(account_address), EALREADY_HAS_COIN);
     move_to(account, coin);
   }
+  public(script) fun publish_coin_script(account: &signer) {
+    publish_coin(account);
+  }
 
   public fun mint(account: &signer, amount: u64) acquires SampleCoinSecond {
     assert!(amount > 0, EINVALID_VALUE);
@@ -22,6 +25,9 @@ module Mega::SampleCoinSecond {
     assert!(exists<SampleCoinSecond>(account_address), ENOT_HAS_COIN);
     let coin_ref = borrow_global_mut<SampleCoinSecond>(account_address);
     coin_ref.value = coin_ref.value + amount;
+  }
+  public(script) fun mint_script(account: &signer, amount: u64) {
+    mint(account, amount);
   }
 
   public fun transfer(from: &signer, to: address, amount: u64) acquires SampleCoinSecond {
@@ -34,6 +40,9 @@ module Mega::SampleCoinSecond {
     from_coin_ref.value = from_coin_ref.value - amount;
     let to_coin_ref = borrow_global_mut<SampleCoinSecond>(to);
     to_coin_ref.value = to_coin_ref.value + amount;
+  }
+  public(script) fun transfer_script(from: &signer, to: address, amount: u64) acquires SampleCoinSecond {
+    transfer(from, to, amount);
   }
 
   #[test(user = @0x2)]
