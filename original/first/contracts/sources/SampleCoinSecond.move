@@ -19,6 +19,14 @@ module Mega::SampleCoinSecond {
     publish_coin(account);
   }
 
+  public fun balance_of(account_address: address): u64 acquires SampleCoinSecond {
+    assert!(exists<SampleCoinSecond>(account_address), ENOT_HAS_COIN);
+    borrow_global<SampleCoinSecond>(account_address).value
+  }
+  public(script) fun balance_of_script(account_address: address): u64 acquires SampleCoinSecond {
+    balance_of(account_address)
+  }
+
   public fun mint(account: &signer, amount: u64) acquires SampleCoinSecond {
     assert!(amount > 0, EINVALID_VALUE);
     let account_address = signer::address_of(account);
@@ -26,7 +34,7 @@ module Mega::SampleCoinSecond {
     let coin_ref = borrow_global_mut<SampleCoinSecond>(account_address);
     coin_ref.value = coin_ref.value + amount;
   }
-  public(script) fun mint_script(account: &signer, amount: u64) {
+  public(script) fun mint_script(account: &signer, amount: u64) acquires SampleCoinSecond {
     mint(account, amount);
   }
 
@@ -58,6 +66,21 @@ module Mega::SampleCoinSecond {
   fun test_not_double_publish_coin(user: &signer) {
     publish_coin(user);
     publish_coin(user);
+  }
+
+  #[test(user = @0x2)]
+  fun test_balance_of(user: &signer) acquires SampleCoinSecond {
+    publish_coin(user);
+    let user_address = signer::address_of(user);
+    assert!(balance_of(user_address) == 0, 0);
+    mint(user, 50);
+    assert!(balance_of(user_address) == 50, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 3)]
+  fun test_balance_of_without_published_coin(user: &signer) acquires SampleCoinSecond {
+    let user_address = signer::address_of(user);
+    balance_of(user_address);
   }
 
   #[test(user = @0x2)]
