@@ -35,9 +35,14 @@ module SampleStaking::Pool {
     });
   }
 
-  #[test(user = @0x2)]
-  public fun test_create_pool(user: &signer) {
-    create_pool(user);
-    assert!(exists<Pool>(signer::address_of(user)), 0);
+  #[test(owner = @SampleStaking)]
+  public fun test_create_pool(owner: &signer) acquires Pool {
+    create_pool(owner);
+    assert!(exists<Pool>(signer::address_of(owner)), 0);
+    let pool = borrow_global<Pool>(@SampleStaking);
+    let staking_coin_value = BaseCoin::get_fields<StakingCoin>(&pool.staking_coin);
+    assert!(staking_coin_value == 1000000000, 0);
+    let gov_coin_value = BaseCoin::get_fields<GovCoin>(&pool.gov_coin);
+    assert!(gov_coin_value == 0, 0);
   }
 }
