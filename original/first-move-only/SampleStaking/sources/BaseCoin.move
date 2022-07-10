@@ -5,7 +5,7 @@ module SampleStaking::BaseCoin {
   const EINVALID_VALUE: u64 = 2;
   const ENOT_HAS_COIN: u64 = 3;
 
-  struct Coin<phantom CoinType> has key {
+  struct Coin<phantom CoinType> has key, store, drop {
     value: u64
   }
 
@@ -14,6 +14,10 @@ module SampleStaking::BaseCoin {
     let account_address = signer::address_of(account);
     assert!(!exists<Coin<CoinType>>(account_address), EALREADY_HAS_COIN);
     move_to(account, coin);
+  }
+
+  public fun extract_coin<CoinType>(account: &signer): Coin<CoinType> acquires Coin {
+    move_from<Coin<CoinType>>(signer::address_of(account))
   }
 
   public fun mint<CoinType>(account: &signer, amount: u64) acquires Coin {
