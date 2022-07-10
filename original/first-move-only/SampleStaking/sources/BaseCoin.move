@@ -17,7 +17,9 @@ module SampleStaking::BaseCoin {
   }
 
   public fun extract_coin<CoinType>(account: &signer): Coin<CoinType> acquires Coin {
-    move_from<Coin<CoinType>>(signer::address_of(account))
+    let account_address = signer::address_of(account);
+    assert!(exists<Coin<CoinType>>(account_address), ENOT_HAS_COIN);
+    move_from<Coin<CoinType>>(account_address)
   }
 
   public fun mint<CoinType>(account: &signer, amount: u64) acquires Coin {
@@ -67,6 +69,11 @@ module SampleStaking::BaseCoin {
     let coin = extract_coin<TestCoin>(user);
     assert!(coin == Coin<TestCoin> { value: 0 }, 0);
     assert!(!exists<Coin<TestCoin>>(signer::address_of(user)), 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 3)]
+  fun test_extract_coin_without_coin(user: &signer) acquires Coin {
+    extract_coin<TestCoin>(user);
   }
 
   #[test(user = @0x2)]
