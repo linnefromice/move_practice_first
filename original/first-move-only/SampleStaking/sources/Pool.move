@@ -23,10 +23,10 @@ module SampleStaking::Pool {
     let max_supply = 1000000000;
 
     StakingCoin::publish_coin(owner);
-    StakingCoin::mint(owner, max_supply);
     let staking_coin = BaseCoin::extract_coin<StakingCoin>(owner);
 
     GovCoin::publish_coin(owner);
+    GovCoin::mint(owner, max_supply);
     let gov_coin = BaseCoin::extract_coin<GovCoin>(owner);
 
     move_to(owner, Pool {
@@ -41,8 +41,8 @@ module SampleStaking::Pool {
     assert!(exists<Pool>(signer::address_of(owner)), 0);
     let pool = borrow_global<Pool>(@SampleStaking);
     let staking_coin_value = BaseCoin::get_fields<StakingCoin>(&pool.staking_coin);
-    assert!(staking_coin_value == 1000000000, 0);
+    assert!(staking_coin_value == 0, 0);
     let gov_coin_value = BaseCoin::get_fields<GovCoin>(&pool.gov_coin);
-    assert!(gov_coin_value == 0, 0);
+    assert!(gov_coin_value == 1000000000, 0);
   }
 }
