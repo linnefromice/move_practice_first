@@ -62,6 +62,14 @@ module SampleStaking::BaseCoin {
   }
 
   #[test(user = @0x2)]
+  fun test_extract_coin(user: &signer) acquires Coin {
+    publish_coin<TestCoin>(user);
+    let coin = extract_coin<TestCoin>(user);
+    assert!(coin == Coin<TestCoin> { value: 0 }, 0);
+    assert!(!exists<Coin<TestCoin>>(signer::address_of(user)), 0);
+  }
+
+  #[test(user = @0x2)]
   fun test_mint(user: &signer) acquires Coin {
     publish_coin<TestCoin>(user);
     mint<TestCoin>(user, 100);
