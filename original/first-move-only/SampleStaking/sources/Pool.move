@@ -1,4 +1,6 @@
 module SampleStaking::Pool {
+  use std::signer;
+
   use SampleStaking::BaseCoin::{
     Self,
     Coin
@@ -31,5 +33,11 @@ module SampleStaking::Pool {
       staking_coin,
       gov_coin
     });
+  }
+
+  #[test(user = @0x2)]
+  public fun test_create_pool(user: &signer) {
+    create_pool(user);
+    assert!(exists<Pool>(signer::address_of(user)), 0);
   }
 }
