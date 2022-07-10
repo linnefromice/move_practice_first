@@ -16,6 +16,11 @@ module SampleStaking::BaseCoin {
     move_to(account, coin);
   }
 
+  public fun get_fields<CoinType>(account_address: address): u64 acquires Coin {
+    assert!(exists<Coin<CoinType>>(account_address), ENOT_HAS_COIN);
+    borrow_global<Coin<CoinType>>(account_address).value
+  }
+
   public fun extract_coin<CoinType>(account: &signer): Coin<CoinType> acquires Coin {
     let account_address = signer::address_of(account);
     assert!(exists<Coin<CoinType>>(account_address), ENOT_HAS_COIN);
@@ -61,6 +66,20 @@ module SampleStaking::BaseCoin {
   fun test_not_double_publish_coin(user: &signer) {
     publish_coin<TestCoin>(user);
     publish_coin<TestCoin>(user);
+  }
+
+  #[test(user = @0x2)]
+  fun test_get_fields(user: &signer) acquires Coin {
+    publish_coin<TestCoin>(user);
+    mint<TestCoin>(user, 100);
+    let user_address = signer::address_of(user);
+    let value = get_fields<TestCoin>(user_address);
+    assert!(value == 100, 0);
+  }
+  #[test(user = @0x2)]
+  #[expected_failure(abort_code = 3)]
+  fun test_get_fields_without_coin(user: &signer) acquires Coin {
+    get_fields<TestCoin>(signer::address_of(user));
   }
 
   #[test(user = @0x2)]
