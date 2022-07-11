@@ -16,8 +16,12 @@ module SampleStaking::BaseCoin {
     move_to(account, coin);
   }
 
-  public fun get_fields<CoinType>(coin: &Coin<CoinType>): u64 {
+  public fun balance_of_internal<CoinType>(coin: &Coin<CoinType>): u64 {
     coin.value
+  }
+  public fun balance_of<CoinType>(account_address: address): u64 acquires Coin {
+    let coin = borrow_global<Coin<CoinType>>(account_address);
+    balance_of_internal<CoinType>(coin)
   }
 
   public fun mint<CoinType>(account: &signer, amount: u64) acquires Coin {
@@ -91,11 +95,11 @@ module SampleStaking::BaseCoin {
   }
 
   #[test(user = @0x2)]
-  fun test_get_fields(user: &signer) acquires Coin {
+  fun test_balance_of_internal(user: &signer) acquires Coin {
     publish_coin<TestCoin>(user);
     mint<TestCoin>(user, 100);
     let coin = borrow_global<Coin<TestCoin>>(signer::address_of(user));
-    let value = get_fields<TestCoin>(coin);
+    let value = balance_of_internal<TestCoin>(coin);
     assert!(value == 100, 0);
   }
 
