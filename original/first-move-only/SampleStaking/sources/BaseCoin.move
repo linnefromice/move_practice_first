@@ -20,18 +20,37 @@ module SampleStaking::BaseCoin {
     coin.value
   }
 
-  public fun extract_coin<CoinType>(account: &signer): Coin<CoinType> acquires Coin {
-    let account_address = signer::address_of(account);
-    assert!(exists<Coin<CoinType>>(account_address), ENOT_HAS_COIN);
-    move_from<Coin<CoinType>>(account_address)
-  }
-
   public fun mint<CoinType>(account: &signer, amount: u64) acquires Coin {
     assert!(amount > 0, EINVALID_VALUE);
     let account_address = signer::address_of(account);
     assert!(exists<Coin<CoinType>>(account_address), ENOT_HAS_COIN);
     let coin_ref = borrow_global_mut<Coin<CoinType>>(account_address);
     coin_ref.value = coin_ref.value + amount;
+  }
+
+  public fun deposit<CoinType>(account_address: address, coin: Coin<CoinType>) acquires Coin {
+    let account_coin = borrow_global_mut<Coin<CoinType>>(account_address);
+    account_coin.value = account_coin.value + coin.value;
+  }
+  public fun merge<CoinType>(dst_coin: &mut Coin<CoinType>, source_coin: Coin<CoinType>) {
+    dst_coin.value = dst_coin.value + source_coin.value;
+    let Coin { value: _ } = source_coin;
+  }
+
+  public fun withdraw<CoinType>(account_address: address, amount: u64): Coin<CoinType> acquires Coin {
+    let account_coin = borrow_global_mut<Coin<CoinType>>(account_address);
+    account_coin.value = account_coin.value - amount;
+    Coin { value: amount }
+  }
+  public fun extract_all<CoinType>(account: &signer): Coin<CoinType> acquires Coin {
+    let account_address = signer::address_of(account);
+    assert!(exists<Coin<CoinType>>(account_address), ENOT_HAS_COIN);
+    move_from<Coin<CoinType>>(account_address)
+  }
+  public fun extract<CoinType>(coin: &mut Coin<CoinType>, amount: u64): Coin<CoinType> {
+    assert!(coin.value >= amount, EINVALID_VALUE);
+    coin.value = coin.value - amount;
+    Coin<CoinType> { value: amount }
   }
 
   public fun transfer<CoinType>(from: &signer, to: address, amount: u64) acquires Coin {
@@ -44,6 +63,10 @@ module SampleStaking::BaseCoin {
     from_coin_ref.value = from_coin_ref.value - amount;
     let to_coin_ref = borrow_global_mut<Coin<CoinType>>(to);
     to_coin_ref.value = to_coin_ref.value + amount;
+  }
+
+  public fun is_exist<CoinType>(account_address: address): bool {
+    exists<Coin<CoinType>>(account_address)
   }
 
   #[test_only]
@@ -77,16 +100,16 @@ module SampleStaking::BaseCoin {
   }
 
   #[test(user = @0x2)]
-  fun test_extract_coin(user: &signer) acquires Coin {
+  fun test_extract_all(user: &signer) acquires Coin {
     publish_coin<TestCoin>(user);
-    let coin = extract_coin<TestCoin>(user);
+    let coin = extract_all<TestCoin>(user);
     assert!(coin == Coin<TestCoin> { value: 0 }, 0);
     assert!(!exists<Coin<TestCoin>>(signer::address_of(user)), 0);
   }
   #[test(user = @0x2)]
   #[expected_failure(abort_code = 3)]
-  fun test_extract_coin_without_coin(user: &signer) acquires Coin {
-    extract_coin<TestCoin>(user);
+  fun test_extract_all_without_coin(user: &signer) acquires Coin {
+    extract_all<TestCoin>(user);
   }
 
   #[test(user = @0x2)]
