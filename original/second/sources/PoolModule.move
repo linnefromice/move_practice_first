@@ -61,10 +61,13 @@ module SampleStaking::PoolModule {
 
     // Execute
     add_pair_pool<CoinX, CoinY>(owner, 2000, 6000);
-
+    // Check: PairPool
     assert!(exists<PairPool<CoinX, CoinY>>(owner_address), 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
     assert!(Coin::value<CoinX>(&pool.x) == 2000, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 6000, 0);
+    // Check: owner
+    assert!(Coin::balance<CoinX>(owner_address) == 8000, 0);
+    assert!(Coin::balance<CoinY>(owner_address) == 4000, 0);
   }
 }
