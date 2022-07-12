@@ -38,6 +38,13 @@ module SampleStaking::LiquidityProviderTokenModule {
   public fun is_exists<X, Y>(to: address): bool {
     exists<LPToken<X, Y>>(to)
   }
+  public fun value_internal<X, Y>(coin: &LPToken<X, Y>): u64 {
+    coin.value
+  }
+  public fun value<X, Y>(account: address): u64 acquires LPToken {
+    let coin = borrow_global<LPToken<X, Y>>(account);
+    value_internal(coin)
+  }
   public fun mint_to<X, Y>(
     // owner: &signer,
     to: address,

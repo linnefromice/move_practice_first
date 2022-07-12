@@ -198,7 +198,30 @@ module SampleStaking::PoolModule {
 
     // Execute
     assert!(!LiquidityProviderTokenModule::is_exists<CoinX, CoinY>(account_address), 0);
+    
     deposit<CoinX, CoinY>(account, 15, 0);
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
     assert!(LiquidityProviderTokenModule::is_exists<CoinX, CoinY>(account_address), 0);
+    assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 15, 0);
+    assert!(Coin::value<CoinX>(&pool.x) == 115, 0);
+    assert!(Coin::value<CoinY>(&pool.y) == 100, 0);
+    assert!(Coin::balance<CoinX>(account_address) == 85, 0);
+    assert!(Coin::balance<CoinY>(account_address) == 100, 0);
+    
+    deposit<CoinX, CoinY>(account, 0, 30);
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 45, 0);
+    assert!(Coin::value<CoinX>(&pool.x) == 115, 0);
+    assert!(Coin::value<CoinY>(&pool.y) == 130, 0);
+    assert!(Coin::balance<CoinX>(account_address) == 85, 0);
+    assert!(Coin::balance<CoinY>(account_address) == 70, 0);
+    
+    deposit<CoinX, CoinY>(account, 85, 70);
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 200, 0);
+    assert!(Coin::value<CoinX>(&pool.x) == 200, 0);
+    assert!(Coin::value<CoinY>(&pool.y) == 200, 0);
+    assert!(Coin::balance<CoinX>(account_address) == 0, 0);
+    assert!(Coin::balance<CoinY>(account_address) == 0, 0);
   }
 }
