@@ -1,19 +1,21 @@
 module SampleStaking::PoolModule {
   use Std::ASCII;
-  use Std::Signer;
   use AptosFramework::Coin;
 
   struct PairPool<phantom X, phantom Y> has key {
+    name: ASCII::String,
     x: Coin::Coin<X>,
     y: Coin::Coin<Y>,
   }
 
-  public fun add_pair_pool<X, Y>(owner: &signer, x_amount: u64, y_amount: u64) {
+  public fun add_pair_pool<X, Y>(owner: &signer, name: vector<u8>, x_amount: u64, y_amount: u64) {
     let x = Coin::withdraw<X>(owner, x_amount);
     let y = Coin::withdraw<Y>(owner, y_amount);
-    move_to(owner, PairPool<X, Y> { x, y });
+    move_to(owner, PairPool<X, Y> { name: ASCII::string(name), x, y });
   }
 
+  #[test_only]
+  use Std::Signer;
   #[test_only]
   use AptosFramework::Coin::{BurnCapability,MintCapability};
   #[test_only]
@@ -26,7 +28,7 @@ module SampleStaking::PoolModule {
     burn_cap: BurnCapability<CoinType>,
   }
   #[test(owner = @SampleStaking)]
-  public(script) fun test_add_pair_pool(owner: &signer) acquires PairPool {
+  public fun test_add_pair_pool(owner: &signer) acquires PairPool {
     let (x_mint_cap, x_burn_cap) = Coin::initialize<CoinX>(
       owner,
       ASCII::string(b"Coin X"),
@@ -60,10 +62,11 @@ module SampleStaking::PoolModule {
     });
 
     // Execute
-    add_pair_pool<CoinX, CoinY>(owner, 2000, 6000);
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 2000, 6000);
     // Check: PairPool
     assert!(exists<PairPool<CoinX, CoinY>>(owner_address), 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    assert!(pool.name == ASCII::string(b"Pool X Y"), 0);
     assert!(Coin::value<CoinX>(&pool.x) == 2000, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 6000, 0);
     // Check: owner
