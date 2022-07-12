@@ -37,7 +37,7 @@ module SampleStaking::PoolModule {
     let y = Coin::withdraw<Y>(owner, y_amount);
     move_to(owner, PairPool<X, Y> {
       name: ASCII::string(name),
-      lptoken_info: LiquidityProviderTokenModule::initialize<X, Y>(),
+      lptoken_info: LiquidityProviderTokenModule::initialize<X, Y>(owner),
       x,
       y
     });
