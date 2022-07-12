@@ -17,34 +17,34 @@ module SampleStaking::LiquidityProviderTokenModule {
   fun assert_admin(signer: &signer) {
     assert!(Signer::address_of(signer) == OWNER, E_NOT_OWNER_ADDRESS);
   }
-  fun assert_no_lptoken<CoinTypeX, CoinTypeY>(account_address: address) {
-    assert!(exists<LPToken<CoinTypeX, CoinTypeY>>(account_address), E_NO_LPTOKEN);
+  fun assert_no_lptoken<X, Y>(account_address: address) {
+    assert!(exists<LPToken<X, Y>>(account_address), E_NO_LPTOKEN);
   }
 
   // functions: control LPTokenInfo
-  public fun initialize<CoinTypeX, CoinTypeY>(owner: &signer): LPTokenInfo<CoinTypeX, CoinTypeY> {
+  public fun initialize<X, Y>(owner: &signer): LPTokenInfo<X, Y> {
     assert_admin(owner);
-    LPTokenInfo<CoinTypeX, CoinTypeY> { total_supply: 0 }
+    LPTokenInfo<X, Y> { total_supply: 0 }
   }
 
-  public fun total_supply_internal<CoinTypeX, CoinTypeY>(res: &LPTokenInfo<CoinTypeX, CoinTypeY>): u64 {
+  public fun total_supply_internal<X, Y>(res: &LPTokenInfo<X, Y>): u64 {
     res.total_supply
   }
 
   // functions: control LPToken
-  public fun new<CoinTypeX, CoinTypeY>(to: &signer) {
-    move_to(to, LPToken<CoinTypeX, CoinTypeY> { value: 0 });
+  public fun new<X, Y>(to: &signer) {
+    move_to(to, LPToken<X, Y> { value: 0 });
   }
-  public fun mint_to<CoinTypeX, CoinTypeY>(
+  public fun mint_to<X, Y>(
     owner: &signer,
     to: address,
     amount: u64,
-    info: &mut LPTokenInfo<CoinTypeX, CoinTypeY>
+    info: &mut LPTokenInfo<X, Y>
   ) acquires LPToken {
     assert_admin(owner);
-    assert_no_lptoken<CoinTypeX, CoinTypeY>(to);
-    let to_token = borrow_global_mut<LPToken<CoinTypeX, CoinTypeY>>(to);
-    to_token.value = to_token.value + amount;
+    assert_no_lptoken<X, Y>(to);
+    let value = &mut borrow_global_mut<LPToken<X, Y>>(to).value;
+    *value = *value + amount;
     let total_supply = &mut info.total_supply;
     *total_supply = *total_supply + amount;
   }
