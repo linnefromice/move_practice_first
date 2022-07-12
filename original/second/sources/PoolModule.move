@@ -11,13 +11,15 @@ module SampleStaking::PoolModule {
     y: Coin::Coin<Y>,
   }
 
+  // consts
+  const OWNER: address = @SampleStaking;
   // consts: Errors
   const E_INVALID_VALUE: u64 = 1;
   const E_NOT_OWNER_ADDRESS: u64 = 101;
 
   // functions: Asserts
   fun assert_admin(signer: &signer) {
-    assert!(Signer::address_of(signer) == @SampleStaking, E_NOT_OWNER_ADDRESS);
+    assert!(Signer::address_of(signer) == OWNER, E_NOT_OWNER_ADDRESS);
   }
   fun assert_greater_than_zero(value: u64) {
     assert!(value > 0, E_INVALID_VALUE);
@@ -41,6 +43,32 @@ module SampleStaking::PoolModule {
       x,
       y
     });
+  }
+
+  public fun deposit<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool {
+    assert!(x_amount > 0 || y_amount > 0, E_INVALID_VALUE);
+    let account_address = Signer::address_of(account);
+    let pool = borrow_global_mut<PairPool<X, Y>>(OWNER);
+
+    if (x_amount > 0) {
+      assert_hold_more_than_amount<X>(account_address, x_amount);
+      let coin = Coin::withdraw<X>(account, x_amount);
+      Coin::merge<X>(&mut pool.x, coin);
+    };
+    if (y_amount > 0) {
+      assert_hold_more_than_amount<Y>(account_address, y_amount);
+      let coin = Coin::withdraw<Y>(account, y_amount);
+      Coin::merge<Y>(&mut pool.y, coin);
+    };
+
+    if (!LiquidityProviderTokenModule::is_exists<X, Y>(account_address)) {
+      LiquidityProviderTokenModule::new<X, Y>(account);
+    };
+    LiquidityProviderTokenModule::mint_to<X, Y>(
+      account_address,
+      x_amount + y_amount,
+      &mut pool.lptoken_info
+    );
   }
 
   #[test_only]

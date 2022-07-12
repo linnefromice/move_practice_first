@@ -35,13 +35,16 @@ module SampleStaking::LiquidityProviderTokenModule {
   public fun new<X, Y>(to: &signer) {
     move_to(to, LPToken<X, Y> { value: 0 });
   }
+  public fun is_exists<X, Y>(to: address): bool {
+    exists<LPToken<X, Y>>(to)
+  }
   public fun mint_to<X, Y>(
-    owner: &signer,
+    // owner: &signer,
     to: address,
     amount: u64,
     info: &mut LPTokenInfo<X, Y>
   ) acquires LPToken {
-    assert_admin(owner);
+    // assert_admin(owner);
     assert_no_lptoken<X, Y>(to);
     let value = &mut borrow_global_mut<LPToken<X, Y>>(to).value;
     *value = *value + amount;
@@ -72,13 +75,13 @@ module SampleStaking::LiquidityProviderTokenModule {
     new<CoinX, CoinY>(user2);
 
     let user1_address = Signer::address_of(user1);
-    mint_to<CoinX, CoinY>(owner, user1_address, 100, &mut info);
+    mint_to<CoinX, CoinY>(user1_address, 100, &mut info);
     let user1_coin = borrow_global<LPToken<CoinX, CoinY>>(user1_address);
     assert!(user1_coin.value == 100, 0);
     assert!(info.total_supply == 100, 0);
 
     let user2_address = Signer::address_of(user2);
-    mint_to<CoinX, CoinY>(owner, user2_address, 2000, &mut info);
+    mint_to<CoinX, CoinY>(user2_address, 2000, &mut info);
     let user2_coin = borrow_global<LPToken<CoinX, CoinY>>(user2_address);
     assert!(user2_coin.value == 2000, 0);
     assert!(info.total_supply == 2100, 0);
