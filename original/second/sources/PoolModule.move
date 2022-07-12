@@ -8,7 +8,22 @@ module SampleStaking::PoolModule {
     y: Coin::Coin<Y>,
   }
 
+  // consts: Errors
+  const E_INVALID_VALUE: u64 = 1;
+  const E_NOT_OWNER_ADDRESS: u64 = 101;
+
+  // functions: Asserts
+  fun assert_admin(signer: &signer) {
+    assert!(Signer::address_of(signer) == @SampleStaking, E_NOT_OWNER_ADDRESS);
+  }
+  fun assert_greater_than_zero(value: u64) {
+    assert!(value > 0, E_INVALID_VALUE);
+  }
+
   public fun add_pair_pool<X, Y>(owner: &signer, name: vector<u8>, x_amount: u64, y_amount: u64) {
+    assert_admin(owner);
+    assert_greater_than_zero(x_amount);
+    assert_greater_than_zero(y_amount);
     let x = Coin::withdraw<X>(owner, x_amount);
     let y = Coin::withdraw<Y>(owner, y_amount);
     move_to(owner, PairPool<X, Y> { name: ASCII::string(name), x, y });
@@ -72,5 +87,21 @@ module SampleStaking::PoolModule {
     // Check: owner
     assert!(Coin::balance<CoinX>(owner_address) == 8000, 0);
     assert!(Coin::balance<CoinY>(owner_address) == 4000, 0);
+  }
+
+  #[test(owner = @0x1)]
+  #[expected_failure(abort_code = 101)]
+  public fun test_add_pair_pool_when_not_admin(owner: &signer) {
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 9999, 9999);
+  }
+  #[test(owner = @SampleStaking)]
+  #[expected_failure(abort_code = 1)]
+  public fun test_add_pair_pool_when_x_is_zero(owner: &signer) {
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 0, 9999);
+  }
+  #[test(owner = @SampleStaking)]
+  #[expected_failure(abort_code = 1)]
+  public fun test_add_pair_pool_when_y_is_zero(owner: &signer) {
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 9999, 0);
   }
 }
