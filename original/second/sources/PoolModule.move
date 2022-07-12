@@ -71,6 +71,14 @@ module SampleStaking::PoolModule {
     );
   }
 
+  public fun withdraw<X, Y>(account: &signer, x_amount: u64, y_amount: u64) {
+    assert!(x_amount > 0 || y_amount > 0, E_INVALID_VALUE);
+    let account_address = Signer::address_of(account);
+    assert!(LiquidityProviderTokenModule::is_exists<X, Y>(account_address), E_INVALID_VALUE);
+    let balance = LiquidityProviderTokenModule::value<X, Y>(account_address);
+    assert!(x_amount + y_amount <= balance, E_INVALID_VALUE);
+  }
+
   #[test_only]
   use AptosFramework::Coin::{BurnCapability,MintCapability};
   #[test_only]
@@ -223,5 +231,25 @@ module SampleStaking::PoolModule {
     assert!(Coin::value<CoinY>(&pool.y) == 200, 0);
     assert!(Coin::balance<CoinX>(account_address) == 0, 0);
     assert!(Coin::balance<CoinY>(account_address) == 0, 0);
+  }
+
+  // #[test(owner = @SampleStaking, account = @0x1)]
+  #[test(account = @0x1)]
+  #[expected_failure(abort_code = 1)]
+  fun test_withdraw_with_zero_value(account: &signer) {
+    withdraw<CoinX, CoinY>(account, 0, 0);
+  }
+  // #[test(owner = @SampleStaking, account = @0x1)]
+  #[test(account = @0x1)]
+  #[expected_failure(abort_code = 1)]
+  fun test_withdraw_with_no_lptoken(account: &signer) {
+    withdraw<CoinX, CoinY>(account, 1, 0);
+  }
+  // #[test(owner = @SampleStaking, account = @0x1)]
+  #[test(account = @0x1)]
+  #[expected_failure(abort_code = 1)]
+  fun test_withdraw_with_no_balance_of_lptoken(account: &signer) {
+    LiquidityProviderTokenModule::new<CoinX, CoinY>(account);
+    withdraw<CoinX, CoinY>(account, 1, 0);
   }
 }
