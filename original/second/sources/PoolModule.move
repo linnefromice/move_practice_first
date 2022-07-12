@@ -26,7 +26,7 @@ module SampleStaking::PoolModule {
     burn_cap: BurnCapability<CoinType>,
   }
   #[test(owner = @SampleStaking)]
-  public(script) fun test_add_pair_pool(owner: &signer) {
+  public(script) fun test_add_pair_pool(owner: &signer) acquires PairPool {
     let (x_mint_cap, x_burn_cap) = Coin::initialize<CoinX>(
       owner,
       ASCII::string(b"Coin X"),
@@ -59,6 +59,12 @@ module SampleStaking::PoolModule {
       burn_cap: y_burn_cap,
     });
 
-    // Execute -> TODO
+    // Execute
+    add_pair_pool<CoinX, CoinY>(owner, 2000, 6000);
+
+    assert!(exists<PairPool<CoinX, CoinY>>(owner_address), 0);
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    assert!(Coin::value<CoinX>(&pool.x) == 2000, 0);
+    assert!(Coin::value<CoinY>(&pool.y) == 6000, 0);
   }
 }
