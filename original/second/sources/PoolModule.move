@@ -55,7 +55,7 @@ module SampleStaking::PoolModule {
     burn_cap: BurnCapability<CoinType>,
   }
   #[test_only]
-  public fun register_test_coins(owner: &signer) {
+  fun register_test_coins(owner: &signer) {
     let (x_mint_cap, x_burn_cap) = Coin::initialize<CoinX>(
       owner,
       ASCII::string(b"Coin X"),
@@ -84,7 +84,7 @@ module SampleStaking::PoolModule {
   }
 
   #[test(owner = @SampleStaking)]
-  public fun test_add_pair_pool(owner: &signer) acquires PairPool, FakeCapabilities {
+  fun test_add_pair_pool(owner: &signer) acquires PairPool, FakeCapabilities {
     register_test_coins(owner);
     let owner_address = Signer::address_of(owner);
     let x_capabilities = borrow_global<FakeCapabilities<CoinX>>(owner_address);
@@ -110,22 +110,22 @@ module SampleStaking::PoolModule {
 
   #[test(owner = @0x1)]
   #[expected_failure(abort_code = 101)]
-  public fun test_add_pair_pool_when_not_admin(owner: &signer) {
+  fun test_add_pair_pool_when_not_admin(owner: &signer) {
     add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 9999, 9999);
   }
   #[test(owner = @SampleStaking)]
   #[expected_failure(abort_code = 1)]
-  public fun test_add_pair_pool_when_x_is_zero(owner: &signer) {
+  fun test_add_pair_pool_when_x_is_zero(owner: &signer) {
     add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 0, 9999);
   }
   #[test(owner = @SampleStaking)]
   #[expected_failure(abort_code = 1)]
-  public fun test_add_pair_pool_when_y_is_zero(owner: &signer) {
+  fun test_add_pair_pool_when_y_is_zero(owner: &signer) {
     add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 9999, 0);
   }
   #[test(owner = @SampleStaking)]
   #[expected_failure(abort_code = 1)]
-  public fun test_add_pair_pool_when_x_is_insufficient(owner: &signer) acquires FakeCapabilities {
+  fun test_add_pair_pool_when_x_is_insufficient(owner: &signer) acquires FakeCapabilities {
     register_test_coins(owner);
     let owner_address = Signer::address_of(owner);
     let x_capabilities = borrow_global<FakeCapabilities<CoinX>>(owner_address);
@@ -139,7 +139,7 @@ module SampleStaking::PoolModule {
   }
   #[test(owner = @SampleStaking)]
   #[expected_failure(abort_code = 1)]
-  public fun test_add_pair_pool_when_y_is_insufficient(owner: &signer) acquires FakeCapabilities {
+  fun test_add_pair_pool_when_y_is_insufficient(owner: &signer) acquires FakeCapabilities {
     register_test_coins(owner);
     let owner_address = Signer::address_of(owner);
     let x_capabilities = borrow_global<FakeCapabilities<CoinX>>(owner_address);
