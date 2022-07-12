@@ -135,7 +135,6 @@ module SampleStaking::PoolModule {
     assert!(Coin::balance<CoinX>(owner_address) == 8000, 0);
     assert!(Coin::balance<CoinY>(owner_address) == 4000, 0);
   }
-
   #[test(owner = @0x1)]
   #[expected_failure(abort_code = 101)]
   fun test_add_pair_pool_when_not_admin(owner: &signer) {
@@ -178,5 +177,28 @@ module SampleStaking::PoolModule {
     Coin::deposit<CoinY>(owner_address, coin_y);
     // Execute
     add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 1, 5);
+  }
+
+  #[test(owner = @SampleStaking, account = @0x1)]
+  fun test_deposit(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+    register_test_coins(owner);
+    
+    let owner_address = Signer::address_of(owner);
+    let x_capabilities = borrow_global<FakeCapabilities<CoinX>>(owner_address);
+    let y_capabilities = borrow_global<FakeCapabilities<CoinY>>(owner_address);
+    Coin::deposit<CoinX>(owner_address, Coin::mint<CoinX>(100, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(owner_address, Coin::mint<CoinY>(100, &y_capabilities.mint_cap));
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 100, 100);
+
+    let account_address = Signer::address_of(account);
+    Coin::register_internal<CoinX>(account);
+    Coin::register_internal<CoinY>(account);
+    Coin::deposit<CoinX>(account_address, Coin::mint<CoinX>(100, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(account_address, Coin::mint<CoinY>(100, &y_capabilities.mint_cap));
+
+    // Execute
+    assert!(!LiquidityProviderTokenModule::is_exists<CoinX, CoinY>(account_address), 0);
+    deposit<CoinX, CoinY>(account, 15, 0);
+    assert!(LiquidityProviderTokenModule::is_exists<CoinX, CoinY>(account_address), 0);
   }
 }
