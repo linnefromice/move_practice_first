@@ -1,9 +1,12 @@
 module SampleStaking::PoolModule {
   use Std::ASCII;
+  use Std::Signer;
   use AptosFramework::Coin;
+  use SampleStaking::LiquidityProviderTokenModule;
 
   struct PairPool<phantom X, phantom Y> has key {
     name: ASCII::String,
+    lpToken: LiquidityProviderTokenModule::LiquidityProviderToken<X, Y>,
     x: Coin::Coin<X>,
     y: Coin::Coin<Y>,
   }
@@ -32,13 +35,14 @@ module SampleStaking::PoolModule {
     assert_hold_more_than_amount<Y>(owner_address, y_amount);
     let x = Coin::withdraw<X>(owner, x_amount);
     let y = Coin::withdraw<Y>(owner, y_amount);
-    move_to(owner, PairPool<X, Y> { name: ASCII::string(name), x, y });
+    move_to(owner, PairPool<X, Y> {
+      name: ASCII::string(name),
+      lpToken: LiquidityProviderTokenModule::new<X, Y>(),
+      x,
+      y
+    });
   }
 
-
-
-  #[test_only]
-  use Std::Signer;
   #[test_only]
   use AptosFramework::Coin::{BurnCapability,MintCapability};
   #[test_only]
