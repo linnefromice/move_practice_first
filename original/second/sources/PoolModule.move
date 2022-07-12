@@ -71,14 +71,32 @@ module SampleStaking::PoolModule {
     );
   }
 
-  public fun withdraw<X, Y>(account: &signer, x_amount: u64, y_amount: u64) {
+  public fun withdraw<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool {
     assert!(x_amount > 0 || y_amount > 0, E_INVALID_VALUE);
     let account_address = Signer::address_of(account);
     assert!(LiquidityProviderTokenModule::is_exists<X, Y>(account_address), E_INVALID_VALUE);
     let balance = LiquidityProviderTokenModule::value<X, Y>(account_address);
     assert!(x_amount + y_amount <= balance, E_INVALID_VALUE);
+
+    let pool = borrow_global_mut<PairPool<X, Y>>(OWNER);
+    if (x_amount > 0) {
+      let coin = Coin::extract<X>(&mut pool.x, x_amount);
+      Coin::deposit<X>(account_address, coin);
+    };
+    if (y_amount > 0) {
+      let coin = Coin::extract<Y>(&mut pool.y, y_amount);
+      Coin::deposit<Y>(account_address, coin);
+    };
+
+    LiquidityProviderTokenModule::burn_from<X, Y>(
+      account_address,
+      x_amount + y_amount,
+      &mut pool.lptoken_info
+    );
   }
 
+  // #[test_only]
+  // use Std::Debug;
   #[test_only]
   use AptosFramework::Coin::{BurnCapability,MintCapability};
   #[test_only]
@@ -233,22 +251,63 @@ module SampleStaking::PoolModule {
     assert!(Coin::balance<CoinY>(account_address) == 0, 0);
   }
 
-  // #[test(owner = @SampleStaking, account = @0x1)]
+  #[test(owner = @SampleStaking, account = @0x1)]
+  fun test_withdraw(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+    register_test_coins(owner);
+
+    let owner_address = Signer::address_of(owner);
+    let x_capabilities = borrow_global<FakeCapabilities<CoinX>>(owner_address);
+    let y_capabilities = borrow_global<FakeCapabilities<CoinY>>(owner_address);
+    Coin::deposit<CoinX>(owner_address, Coin::mint<CoinX>(100, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(owner_address, Coin::mint<CoinY>(100, &y_capabilities.mint_cap));
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 1, 1);
+
+    let account_address = Signer::address_of(account);
+    Coin::register_internal<CoinX>(account);
+    Coin::register_internal<CoinY>(account);
+    Coin::deposit<CoinX>(account_address, Coin::mint<CoinX>(100, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(account_address, Coin::mint<CoinY>(100, &y_capabilities.mint_cap));
+
+    // Execute
+    deposit<CoinX, CoinY>(account, 100, 100);
+
+    withdraw<CoinX, CoinY>(account, 15, 0);
+    assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 185, 0);
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address); // TODO
+    assert!(Coin::value<CoinX>(&pool.x) == 86, 0);
+    assert!(Coin::value<CoinY>(&pool.y) == 101, 0);
+    assert!(Coin::balance<CoinX>(account_address) == 15, 0);
+    assert!(Coin::balance<CoinY>(account_address) == 0, 0);
+
+    withdraw<CoinX, CoinY>(account, 0, 30);
+    assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 155, 0);
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    assert!(Coin::value<CoinX>(&pool.x) == 86, 0);
+    assert!(Coin::value<CoinY>(&pool.y) == 71, 0);
+    assert!(Coin::balance<CoinX>(account_address) == 15, 0);
+    assert!(Coin::balance<CoinY>(account_address) == 30, 0);
+
+    withdraw<CoinX, CoinY>(account, 85, 70);
+    assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 0, 0);
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    assert!(Coin::value<CoinX>(&pool.x) == 1, 0);
+    assert!(Coin::value<CoinY>(&pool.y) == 1, 0);
+    assert!(Coin::balance<CoinX>(account_address) == 100, 0);
+    assert!(Coin::balance<CoinY>(account_address) == 100, 0);
+  }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_zero_value(account: &signer) {
+  fun test_withdraw_with_zero_value(account: &signer) acquires PairPool {
     withdraw<CoinX, CoinY>(account, 0, 0);
   }
-  // #[test(owner = @SampleStaking, account = @0x1)]
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_no_lptoken(account: &signer) {
+  fun test_withdraw_with_no_lptoken(account: &signer) acquires PairPool {
     withdraw<CoinX, CoinY>(account, 1, 0);
   }
-  // #[test(owner = @SampleStaking, account = @0x1)]
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_no_balance_of_lptoken(account: &signer) {
+  fun test_withdraw_with_no_balance_of_lptoken(account: &signer) acquires PairPool {
     LiquidityProviderTokenModule::new<CoinX, CoinY>(account);
     withdraw<CoinX, CoinY>(account, 1, 0);
   }
