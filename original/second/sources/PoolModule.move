@@ -6,7 +6,7 @@ module SampleStaking::PoolModule {
 
   struct PairPool<phantom X, phantom Y> has key {
     name: ASCII::String,
-    lp_token: LiquidityProviderTokenModule::LiquidityProviderToken<X, Y>,
+    lptoken_info: LiquidityProviderTokenModule::LPTokenInfo<X, Y>,
     x: Coin::Coin<X>,
     y: Coin::Coin<Y>,
   }
@@ -37,7 +37,7 @@ module SampleStaking::PoolModule {
     let y = Coin::withdraw<Y>(owner, y_amount);
     move_to(owner, PairPool<X, Y> {
       name: ASCII::string(name),
-      lp_token: LiquidityProviderTokenModule::new<X, Y>(),
+      lptoken_info: LiquidityProviderTokenModule::initialize<X, Y>(),
       x,
       y
     });
@@ -100,7 +100,7 @@ module SampleStaking::PoolModule {
     assert!(exists<PairPool<CoinX, CoinY>>(owner_address), 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
     assert!(pool.name == ASCII::string(b"Pool X Y"), 0);
-    assert!(LiquidityProviderTokenModule::total_supply(&pool.lp_token) == 0, 0);
+    assert!(LiquidityProviderTokenModule::total_supply_internal<CoinX, CoinY>(&pool.lptoken_info) == 0, 0);
     assert!(Coin::value<CoinX>(&pool.x) == 2000, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 6000, 0);
     // Check: owner
