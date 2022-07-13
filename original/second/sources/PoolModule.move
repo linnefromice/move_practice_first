@@ -3,6 +3,7 @@ module SampleStaking::PoolModule {
   use Std::Signer;
   use AptosFramework::Coin;
   use SampleStaking::LiquidityProviderTokenModule;
+  use SampleStaking::Config;
 
   struct PairPool<phantom X, phantom Y> has key {
     name: ASCII::String,
@@ -11,16 +12,10 @@ module SampleStaking::PoolModule {
     y: Coin::Coin<Y>,
   }
 
-  // consts
-  const OWNER: address = @SampleStaking;
   // consts: Errors
   const E_INVALID_VALUE: u64 = 1;
-  const E_NOT_OWNER_ADDRESS: u64 = 101;
 
   // functions: Asserts
-  fun assert_admin(signer: &signer) {
-    assert!(Signer::address_of(signer) == OWNER, E_NOT_OWNER_ADDRESS);
-  }
   fun assert_greater_than_zero(value: u64) {
     assert!(value > 0, E_INVALID_VALUE);
   }
@@ -29,7 +24,7 @@ module SampleStaking::PoolModule {
   }
 
   public fun add_pair_pool<X, Y>(owner: &signer, name: vector<u8>, x_amount: u64, y_amount: u64) {
-    assert_admin(owner);
+    Config::assert_admin(owner);
     assert_greater_than_zero(x_amount);
     assert_greater_than_zero(y_amount);
     let owner_address = Signer::address_of(owner);
@@ -48,7 +43,7 @@ module SampleStaking::PoolModule {
   public fun deposit<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool {
     assert!(x_amount > 0 || y_amount > 0, E_INVALID_VALUE);
     let account_address = Signer::address_of(account);
-    let pool = borrow_global_mut<PairPool<X, Y>>(OWNER);
+    let pool = borrow_global_mut<PairPool<X, Y>>(Config::admin_address());
 
     if (x_amount > 0) {
       assert_hold_more_than_amount<X>(account_address, x_amount);
@@ -78,7 +73,7 @@ module SampleStaking::PoolModule {
     let balance = LiquidityProviderTokenModule::value<X, Y>(account_address);
     assert!(x_amount + y_amount <= balance, E_INVALID_VALUE);
 
-    let pool = borrow_global_mut<PairPool<X, Y>>(OWNER);
+    let pool = borrow_global_mut<PairPool<X, Y>>(Config::admin_address());
     if (x_amount > 0) {
       let value_in_pool = Coin::value<X>(&pool.x);
       assert!(x_amount <= value_in_pool, E_INVALID_VALUE);

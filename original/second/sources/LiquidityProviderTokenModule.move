@@ -1,5 +1,5 @@
 module SampleStaking::LiquidityProviderTokenModule {
-  use Std::Signer;
+  use SampleStaking::Config;
 
   struct LPTokenInfo<phantom X, phantom Y> has key, store, drop {
     total_supply: u64,
@@ -8,16 +8,11 @@ module SampleStaking::LiquidityProviderTokenModule {
     value: u64,
   }
 
-  // consts
-  const OWNER: address = @SampleStaking;
   // consts: Errors
   const E_NOT_OWNER_ADDRESS: u64 = 101;
   const E_NO_LPTOKEN: u64 = 102;
   const E_INSUFFICIENT: u64 = 103;
   // functions: Asserts
-  fun assert_admin(signer: &signer) {
-    assert!(Signer::address_of(signer) == OWNER, E_NOT_OWNER_ADDRESS);
-  }
   fun assert_no_lptoken<X, Y>(account_address: address) {
     assert!(exists<LPToken<X, Y>>(account_address), E_NO_LPTOKEN);
   }
@@ -27,7 +22,7 @@ module SampleStaking::LiquidityProviderTokenModule {
 
   // functions: control LPTokenInfo
   public fun initialize<X, Y>(owner: &signer): LPTokenInfo<X, Y> {
-    assert_admin(owner);
+    Config::assert_admin(owner);
     LPTokenInfo<X, Y> { total_supply: 0 }
   }
 
@@ -75,6 +70,8 @@ module SampleStaking::LiquidityProviderTokenModule {
     *total_supply = *total_supply - amount;
   }
 
+  #[test_only]
+  use Std::Signer;
   #[test_only]
   struct CoinX {}
   #[test_only]
