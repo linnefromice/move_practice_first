@@ -1,0 +1,12 @@
+[package]
+name = "SampleStaking"
+version = "0.0.0"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "main" }
+MoveNursery = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/move-stdlib/nursery/", rev = "main" }
+
+[addresses]
+SampleStaking = "0xc68e289e234810b81b801068b6e7fc9b34ca921218c5028a8f430c8a9f0e5d28"
+#AptosFramework = "0x1"
+#CoreResources = "0xA550C18"
