@@ -279,7 +279,7 @@ module SampleStaking::PoolModule {
 
     withdraw<CoinX, CoinY>(account, 15, 0);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 185, 0);
-    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address); // TODO
+    let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
     assert!(Coin::value<CoinX>(&pool.x) == 86, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 101, 0);
     assert!(Coin::balance<CoinX>(account_address) == 15, 0);
@@ -316,5 +316,49 @@ module SampleStaking::PoolModule {
   fun test_withdraw_with_no_balance_of_lptoken(account: &signer) acquires PairPool {
     LiquidityProviderTokenModule::new<CoinX, CoinY>(account);
     withdraw<CoinX, CoinY>(account, 1, 0);
+  }
+  #[test(owner = @SampleStaking, account = @0x1)]
+  #[expected_failure(abort_code = 1)]
+  fun test_withdraw_with_insufficent_coin_x_in_pool(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+    register_test_coins(owner);
+
+    let owner_address = Signer::address_of(owner);
+    let x_capabilities = borrow_global<FakeCapabilities<CoinX>>(owner_address);
+    let y_capabilities = borrow_global<FakeCapabilities<CoinY>>(owner_address);
+    Coin::deposit<CoinX>(owner_address, Coin::mint<CoinX>(1, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(owner_address, Coin::mint<CoinY>(1, &y_capabilities.mint_cap));
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 1, 1);
+
+    let account_address = Signer::address_of(account);
+    Coin::register_internal<CoinX>(account);
+    Coin::register_internal<CoinY>(account);
+    Coin::deposit<CoinX>(account_address, Coin::mint<CoinX>(100, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(account_address, Coin::mint<CoinY>(100, &y_capabilities.mint_cap));
+    deposit<CoinX, CoinY>(account, 100, 100);
+
+    // Execute
+    withdraw<CoinX, CoinY>(account, 102, 0);
+  }
+  #[test(owner = @SampleStaking, account = @0x1)]
+  #[expected_failure(abort_code = 1)]
+  fun test_withdraw_with_insufficent_coin_y_in_pool(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+    register_test_coins(owner);
+
+    let owner_address = Signer::address_of(owner);
+    let x_capabilities = borrow_global<FakeCapabilities<CoinX>>(owner_address);
+    let y_capabilities = borrow_global<FakeCapabilities<CoinY>>(owner_address);
+    Coin::deposit<CoinX>(owner_address, Coin::mint<CoinX>(1, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(owner_address, Coin::mint<CoinY>(1, &y_capabilities.mint_cap));
+    add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 1, 1);
+
+    let account_address = Signer::address_of(account);
+    Coin::register_internal<CoinX>(account);
+    Coin::register_internal<CoinY>(account);
+    Coin::deposit<CoinX>(account_address, Coin::mint<CoinX>(100, &x_capabilities.mint_cap));
+    Coin::deposit<CoinY>(account_address, Coin::mint<CoinY>(100, &y_capabilities.mint_cap));
+    deposit<CoinX, CoinY>(account, 100, 100);
+
+    // Execute
+    withdraw<CoinX, CoinY>(account, 0, 102);
   }
 }
