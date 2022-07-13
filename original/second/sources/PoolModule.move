@@ -80,10 +80,16 @@ module SampleStaking::PoolModule {
 
     let pool = borrow_global_mut<PairPool<X, Y>>(OWNER);
     if (x_amount > 0) {
+      let value_in_pool = Coin::value<X>(&pool.x);
+      assert!(x_amount <= value_in_pool, E_INVALID_VALUE);
+
       let coin = Coin::extract<X>(&mut pool.x, x_amount);
       Coin::deposit<X>(account_address, coin);
     };
     if (y_amount > 0) {
+      let value_in_pool = Coin::value<Y>(&pool.y);
+      assert!(y_amount <= value_in_pool, E_INVALID_VALUE);
+
       let coin = Coin::extract<Y>(&mut pool.y, y_amount);
       Coin::deposit<Y>(account_address, coin);
     };
