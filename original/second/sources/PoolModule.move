@@ -330,6 +330,10 @@ module SampleStaking::PoolModule {
     assert!(Coin::value<CoinY>(&pool.y) == 200, 0);
     assert!(Coin::balance<CoinX>(account_address) == 0, 0);
     assert!(Coin::balance<CoinY>(account_address) == 0, 0);
+
+    let handle = borrow_global<PoolModuleEventHandle>(owner_address);
+    assert!(Event::get_event_handle_counter<DepositEvent>(&handle.deposit_events) == 3, 0);
+    assert!(Event::get_event_handle_counter<WithdrawEvent>(&handle.withdraw_events) == 0, 0);
   }
 
   #[test(core_resources = @CoreResources, owner = @SampleStaking, account = @0x1)]
@@ -383,6 +387,10 @@ module SampleStaking::PoolModule {
     assert!(Coin::value<CoinY>(&pool.y) == 1, 0);
     assert!(Coin::balance<CoinX>(account_address) == 100, 0);
     assert!(Coin::balance<CoinY>(account_address) == 100, 0);
+
+    let handle = borrow_global<PoolModuleEventHandle>(owner_address);
+    assert!(Event::get_event_handle_counter<DepositEvent>(&handle.deposit_events) == 1, 0);
+    assert!(Event::get_event_handle_counter<WithdrawEvent>(&handle.withdraw_events) == 3, 0);
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
