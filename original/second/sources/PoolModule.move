@@ -1,6 +1,7 @@
 module SampleStaking::PoolModule {
   use Std::ASCII;
   use Std::Signer;
+  use Std::Event;
   use AptosFramework::Coin;
   use AptosFramework::Timestamp;
   use SampleStaking::LiquidityProviderTokenModule;
@@ -14,6 +15,24 @@ module SampleStaking::PoolModule {
     last_deposited_timestamp: u64,
     last_withdrawed_timestamp: u64
   }
+  struct PoolModuleEventHandle has key {
+    deposit_events: Event::EventHandle<DepositEvent>,
+    withdraw_events: Event::EventHandle<WithdrawEvent>,
+  }
+
+  // struct: events
+  struct DepositEvent has drop, store {
+    account: address,
+    x_amount: u64,
+    y_amount: u64,
+    timestamp: u64
+  }
+  struct WithdrawEvent has drop, store {
+    account: address,
+    x_amount: u64,
+    y_amount: u64,
+    timestamp: u64
+  }
 
   // consts: Errors
   const E_INVALID_VALUE: u64 = 1;
@@ -24,6 +43,14 @@ module SampleStaking::PoolModule {
   }
   fun assert_hold_more_than_amount<CoinType>(account_address: address, value: u64) {
     assert!(Coin::balance<CoinType>(account_address) >= value, E_INVALID_VALUE);
+  }
+
+  public fun initialize_module(owner: &signer) {
+    Config::assert_admin(owner);
+    move_to(owner, PoolModuleEventHandle {
+      deposit_events: Event::new_event_handle<DepositEvent>(owner),
+      withdraw_events: Event::new_event_handle<WithdrawEvent>(owner)
+    })
   }
 
   public fun add_pair_pool<X, Y>(owner: &signer, name: vector<u8>, x_amount: u64, y_amount: u64) {
@@ -101,11 +128,10 @@ module SampleStaking::PoolModule {
       &mut pool.lptoken_info
     );
     pool.last_withdrawed_timestamp = Timestamp::now_microseconds();
-
   }
 
-  #[test_only]
-  use Std::Debug;
+  // #[test_only]
+  // use Std::Debug;
   #[test_only]
   use AptosFramework::Coin::{BurnCapability,MintCapability};
   #[test_only]
@@ -144,6 +170,16 @@ module SampleStaking::PoolModule {
       mint_cap: y_mint_cap,
       burn_cap: y_burn_cap,
     });
+  }
+
+  #[test(owner = @SampleStaking)]
+  fun test_initialize_module(owner: &signer) acquires PoolModuleEventHandle {
+    initialize_module(owner);
+    let owner_address = Signer::address_of(owner);
+    assert!(exists<PoolModuleEventHandle>(owner_address), 0);
+    let handle = borrow_global<PoolModuleEventHandle>(owner_address);
+    assert!(Event::get_event_handle_counter<DepositEvent>(&handle.deposit_events) == 0, 0);
+    assert!(Event::get_event_handle_counter<WithdrawEvent>(&handle.withdraw_events) == 0, 0);
   }
 
   #[test(owner = @SampleStaking)]
