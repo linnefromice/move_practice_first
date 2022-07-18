@@ -101,10 +101,11 @@ module SampleStaking::PoolModule {
       &mut pool.lptoken_info
     );
     pool.last_withdrawed_timestamp = Timestamp::now_microseconds();
+
   }
 
-  // #[test_only]
-  // use Std::Debug;
+  #[test_only]
+  use Std::Debug;
   #[test_only]
   use AptosFramework::Coin::{BurnCapability,MintCapability};
   #[test_only]
@@ -236,6 +237,8 @@ module SampleStaking::PoolModule {
     
     deposit<CoinX, CoinY>(account, 15, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(LiquidityProviderTokenModule::is_exists<CoinX, CoinY>(account_address), 0);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 15, 0);
     assert!(Coin::value<CoinX>(&pool.x) == 115, 0);
@@ -245,6 +248,8 @@ module SampleStaking::PoolModule {
     
     deposit<CoinX, CoinY>(account, 0, 30);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 45, 0);
     assert!(Coin::value<CoinX>(&pool.x) == 115, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 130, 0);
@@ -253,6 +258,8 @@ module SampleStaking::PoolModule {
     
     deposit<CoinX, CoinY>(account, 85, 70);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 200, 0);
     assert!(Coin::value<CoinX>(&pool.x) == 200, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 200, 0);
@@ -284,6 +291,8 @@ module SampleStaking::PoolModule {
     withdraw<CoinX, CoinY>(account, 15, 0);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 185, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(Coin::value<CoinX>(&pool.x) == 86, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 101, 0);
     assert!(Coin::balance<CoinX>(account_address) == 15, 0);
@@ -292,6 +301,8 @@ module SampleStaking::PoolModule {
     withdraw<CoinX, CoinY>(account, 0, 30);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 155, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(Coin::value<CoinX>(&pool.x) == 86, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 71, 0);
     assert!(Coin::balance<CoinX>(account_address) == 15, 0);
@@ -300,6 +311,8 @@ module SampleStaking::PoolModule {
     withdraw<CoinX, CoinY>(account, 85, 70);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 0, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(Coin::value<CoinX>(&pool.x) == 1, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 1, 0);
     assert!(Coin::balance<CoinX>(account_address) == 100, 0);
