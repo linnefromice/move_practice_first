@@ -100,6 +100,7 @@ module SampleStaking::PoolModule {
     let now_microseconds = Timestamp::now_microseconds();
     pool.last_deposited_timestamp = now_microseconds;
 
+    // emit DepositEvent
     let events = &mut borrow_global_mut<PoolModuleEventHandle>(admin_address).deposit_events;
     Event::emit_event<DepositEvent>(
       events,
@@ -112,14 +113,15 @@ module SampleStaking::PoolModule {
     );
   }
 
-  public fun withdraw<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool {
+  public fun withdraw<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool, PoolModuleEventHandle {
     assert!(x_amount > 0 || y_amount > 0, E_INVALID_VALUE);
     let account_address = Signer::address_of(account);
     assert!(LiquidityProviderTokenModule::is_exists<X, Y>(account_address), E_INVALID_VALUE);
     let balance = LiquidityProviderTokenModule::value<X, Y>(account_address);
     assert!(x_amount + y_amount <= balance, E_INVALID_VALUE);
 
-    let pool = borrow_global_mut<PairPool<X, Y>>(Config::admin_address());
+    let admin_address = Config::admin_address();
+    let pool = borrow_global_mut<PairPool<X, Y>>(admin_address);
     if (x_amount > 0) {
       let value_in_pool = Coin::value<X>(&pool.x);
       assert!(x_amount <= value_in_pool, E_INVALID_VALUE);
@@ -140,7 +142,20 @@ module SampleStaking::PoolModule {
       x_amount + y_amount,
       &mut pool.lptoken_info
     );
-    pool.last_withdrawed_timestamp = Timestamp::now_microseconds();
+    let now_microseconds = Timestamp::now_microseconds();
+    pool.last_withdrawed_timestamp = now_microseconds;
+
+    // emit WithdrawEvent
+    let events = &mut borrow_global_mut<PoolModuleEventHandle>(admin_address).withdraw_events;
+    Event::emit_event<WithdrawEvent>(
+      events,
+      WithdrawEvent {
+        account: account_address,
+        x_amount,
+        y_amount,
+        timestamp: now_microseconds
+      }
+    );
   }
 
   // #[test_only]
@@ -371,17 +386,17 @@ module SampleStaking::PoolModule {
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_zero_value(account: &signer) acquires PairPool {
+  fun test_withdraw_with_zero_value(account: &signer) acquires PairPool, PoolModuleEventHandle {
     withdraw<CoinX, CoinY>(account, 0, 0);
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_no_lptoken(account: &signer) acquires PairPool {
+  fun test_withdraw_with_no_lptoken(account: &signer) acquires PairPool, PoolModuleEventHandle {
     withdraw<CoinX, CoinY>(account, 1, 0);
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_no_balance_of_lptoken(account: &signer) acquires PairPool {
+  fun test_withdraw_with_no_balance_of_lptoken(account: &signer) acquires PairPool, PoolModuleEventHandle {
     LiquidityProviderTokenModule::new<CoinX, CoinY>(account);
     withdraw<CoinX, CoinY>(account, 1, 0);
   }
