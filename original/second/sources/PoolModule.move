@@ -1,7 +1,9 @@
 module SampleStaking::PoolModule {
   use Std::ASCII;
   use Std::Signer;
+  use Std::Event;
   use AptosFramework::Coin;
+  use AptosFramework::Timestamp;
   use SampleStaking::LiquidityProviderTokenModule;
   use SampleStaking::Config;
 
@@ -10,6 +12,26 @@ module SampleStaking::PoolModule {
     lptoken_info: LiquidityProviderTokenModule::LPTokenInfo<X, Y>,
     x: Coin::Coin<X>,
     y: Coin::Coin<Y>,
+    last_deposited_timestamp: u64,
+    last_withdrawed_timestamp: u64
+  }
+  struct PoolModuleEventHandle has key {
+    deposit_events: Event::EventHandle<DepositEvent>,
+    withdraw_events: Event::EventHandle<WithdrawEvent>,
+  }
+
+  // struct: events
+  struct DepositEvent has drop, store {
+    account: address,
+    x_amount: u64,
+    y_amount: u64,
+    timestamp: u64
+  }
+  struct WithdrawEvent has drop, store {
+    account: address,
+    x_amount: u64,
+    y_amount: u64,
+    timestamp: u64
   }
 
   // consts: Errors
@@ -21,6 +43,14 @@ module SampleStaking::PoolModule {
   }
   fun assert_hold_more_than_amount<CoinType>(account_address: address, value: u64) {
     assert!(Coin::balance<CoinType>(account_address) >= value, E_INVALID_VALUE);
+  }
+
+  public fun initialize_module(owner: &signer) {
+    Config::assert_admin(owner);
+    move_to(owner, PoolModuleEventHandle {
+      deposit_events: Event::new_event_handle<DepositEvent>(owner),
+      withdraw_events: Event::new_event_handle<WithdrawEvent>(owner)
+    })
   }
 
   public fun add_pair_pool<X, Y>(owner: &signer, name: vector<u8>, x_amount: u64, y_amount: u64) {
@@ -36,14 +66,17 @@ module SampleStaking::PoolModule {
       name: ASCII::string(name),
       lptoken_info: LiquidityProviderTokenModule::initialize<X, Y>(owner),
       x,
-      y
+      y,
+      last_deposited_timestamp: 0,
+      last_withdrawed_timestamp: 0
     });
   }
 
-  public fun deposit<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool {
+  public fun deposit<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool, PoolModuleEventHandle {
     assert!(x_amount > 0 || y_amount > 0, E_INVALID_VALUE);
     let account_address = Signer::address_of(account);
-    let pool = borrow_global_mut<PairPool<X, Y>>(Config::admin_address());
+    let admin_address = Config::admin_address();
+    let pool = borrow_global_mut<PairPool<X, Y>>(admin_address);
 
     if (x_amount > 0) {
       assert_hold_more_than_amount<X>(account_address, x_amount);
@@ -64,16 +97,31 @@ module SampleStaking::PoolModule {
       x_amount + y_amount,
       &mut pool.lptoken_info
     );
+    let now_microseconds = Timestamp::now_microseconds();
+    pool.last_deposited_timestamp = now_microseconds;
+
+    // emit DepositEvent
+    let events = &mut borrow_global_mut<PoolModuleEventHandle>(admin_address).deposit_events;
+    Event::emit_event<DepositEvent>(
+      events,
+      DepositEvent {
+        account: account_address,
+        x_amount,
+        y_amount,
+        timestamp: now_microseconds
+      }
+    );
   }
 
-  public fun withdraw<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool {
+  public fun withdraw<X, Y>(account: &signer, x_amount: u64, y_amount: u64) acquires PairPool, PoolModuleEventHandle {
     assert!(x_amount > 0 || y_amount > 0, E_INVALID_VALUE);
     let account_address = Signer::address_of(account);
     assert!(LiquidityProviderTokenModule::is_exists<X, Y>(account_address), E_INVALID_VALUE);
     let balance = LiquidityProviderTokenModule::value<X, Y>(account_address);
     assert!(x_amount + y_amount <= balance, E_INVALID_VALUE);
 
-    let pool = borrow_global_mut<PairPool<X, Y>>(Config::admin_address());
+    let admin_address = Config::admin_address();
+    let pool = borrow_global_mut<PairPool<X, Y>>(admin_address);
     if (x_amount > 0) {
       let value_in_pool = Coin::value<X>(&pool.x);
       assert!(x_amount <= value_in_pool, E_INVALID_VALUE);
@@ -93,6 +141,20 @@ module SampleStaking::PoolModule {
       account_address,
       x_amount + y_amount,
       &mut pool.lptoken_info
+    );
+    let now_microseconds = Timestamp::now_microseconds();
+    pool.last_withdrawed_timestamp = now_microseconds;
+
+    // emit WithdrawEvent
+    let events = &mut borrow_global_mut<PoolModuleEventHandle>(admin_address).withdraw_events;
+    Event::emit_event<WithdrawEvent>(
+      events,
+      WithdrawEvent {
+        account: account_address,
+        x_amount,
+        y_amount,
+        timestamp: now_microseconds
+      }
     );
   }
 
@@ -136,6 +198,16 @@ module SampleStaking::PoolModule {
       mint_cap: y_mint_cap,
       burn_cap: y_burn_cap,
     });
+  }
+
+  #[test(owner = @SampleStaking)]
+  fun test_initialize_module(owner: &signer) acquires PoolModuleEventHandle {
+    initialize_module(owner);
+    let owner_address = Signer::address_of(owner);
+    assert!(exists<PoolModuleEventHandle>(owner_address), 0);
+    let handle = borrow_global<PoolModuleEventHandle>(owner_address);
+    assert!(Event::get_event_handle_counter<DepositEvent>(&handle.deposit_events) == 0, 0);
+    assert!(Event::get_event_handle_counter<WithdrawEvent>(&handle.withdraw_events) == 0, 0);
   }
 
   #[test(owner = @SampleStaking)]
@@ -206,8 +278,10 @@ module SampleStaking::PoolModule {
     add_pair_pool<CoinX, CoinY>(owner, b"Pool X Y", 1, 5);
   }
 
-  #[test(owner = @SampleStaking, account = @0x1)]
-  fun test_deposit(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+  #[test(core_resources = @CoreResources, owner = @SampleStaking, account = @0x1)]
+  fun test_deposit(core_resources: &signer, owner: &signer, account: &signer) acquires PairPool, FakeCapabilities, PoolModuleEventHandle {
+    Timestamp::set_time_has_started_for_testing(core_resources);
+    initialize_module(owner);
     register_test_coins(owner);
     
     let owner_address = Signer::address_of(owner);
@@ -228,6 +302,8 @@ module SampleStaking::PoolModule {
     
     deposit<CoinX, CoinY>(account, 15, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(LiquidityProviderTokenModule::is_exists<CoinX, CoinY>(account_address), 0);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 15, 0);
     assert!(Coin::value<CoinX>(&pool.x) == 115, 0);
@@ -237,6 +313,8 @@ module SampleStaking::PoolModule {
     
     deposit<CoinX, CoinY>(account, 0, 30);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 45, 0);
     assert!(Coin::value<CoinX>(&pool.x) == 115, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 130, 0);
@@ -245,15 +323,23 @@ module SampleStaking::PoolModule {
     
     deposit<CoinX, CoinY>(account, 85, 70);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 200, 0);
     assert!(Coin::value<CoinX>(&pool.x) == 200, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 200, 0);
     assert!(Coin::balance<CoinX>(account_address) == 0, 0);
     assert!(Coin::balance<CoinY>(account_address) == 0, 0);
+
+    let handle = borrow_global<PoolModuleEventHandle>(owner_address);
+    assert!(Event::get_event_handle_counter<DepositEvent>(&handle.deposit_events) == 3, 0);
+    assert!(Event::get_event_handle_counter<WithdrawEvent>(&handle.withdraw_events) == 0, 0);
   }
 
-  #[test(owner = @SampleStaking, account = @0x1)]
-  fun test_withdraw(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+  #[test(core_resources = @CoreResources, owner = @SampleStaking, account = @0x1)]
+  fun test_withdraw(core_resources: &signer, owner: &signer, account: &signer) acquires PairPool, FakeCapabilities, PoolModuleEventHandle {
+    Timestamp::set_time_has_started_for_testing(core_resources);
+    initialize_module(owner);
     register_test_coins(owner);
 
     let owner_address = Signer::address_of(owner);
@@ -275,6 +361,8 @@ module SampleStaking::PoolModule {
     withdraw<CoinX, CoinY>(account, 15, 0);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 185, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(Coin::value<CoinX>(&pool.x) == 86, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 101, 0);
     assert!(Coin::balance<CoinX>(account_address) == 15, 0);
@@ -283,6 +371,8 @@ module SampleStaking::PoolModule {
     withdraw<CoinX, CoinY>(account, 0, 30);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 155, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(Coin::value<CoinX>(&pool.x) == 86, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 71, 0);
     assert!(Coin::balance<CoinX>(account_address) == 15, 0);
@@ -291,30 +381,38 @@ module SampleStaking::PoolModule {
     withdraw<CoinX, CoinY>(account, 85, 70);
     assert!(LiquidityProviderTokenModule::value<CoinX, CoinY>(account_address) == 0, 0);
     let pool = borrow_global<PairPool<CoinX, CoinY>>(owner_address);
+    // Debug::print<u64>(&pool.last_deposited_timestamp); // For debug
+    // Debug::print<u64>(&pool.last_withdrawed_timestamp); // For debug
     assert!(Coin::value<CoinX>(&pool.x) == 1, 0);
     assert!(Coin::value<CoinY>(&pool.y) == 1, 0);
     assert!(Coin::balance<CoinX>(account_address) == 100, 0);
     assert!(Coin::balance<CoinY>(account_address) == 100, 0);
+
+    let handle = borrow_global<PoolModuleEventHandle>(owner_address);
+    assert!(Event::get_event_handle_counter<DepositEvent>(&handle.deposit_events) == 1, 0);
+    assert!(Event::get_event_handle_counter<WithdrawEvent>(&handle.withdraw_events) == 3, 0);
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_zero_value(account: &signer) acquires PairPool {
+  fun test_withdraw_with_zero_value(account: &signer) acquires PairPool, PoolModuleEventHandle {
     withdraw<CoinX, CoinY>(account, 0, 0);
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_no_lptoken(account: &signer) acquires PairPool {
+  fun test_withdraw_with_no_lptoken(account: &signer) acquires PairPool, PoolModuleEventHandle {
     withdraw<CoinX, CoinY>(account, 1, 0);
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_no_balance_of_lptoken(account: &signer) acquires PairPool {
+  fun test_withdraw_with_no_balance_of_lptoken(account: &signer) acquires PairPool, PoolModuleEventHandle {
     LiquidityProviderTokenModule::new<CoinX, CoinY>(account);
     withdraw<CoinX, CoinY>(account, 1, 0);
   }
-  #[test(owner = @SampleStaking, account = @0x1)]
+  #[test(core_resources = @CoreResources, owner = @SampleStaking, account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_insufficent_coin_x_in_pool(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+  fun test_withdraw_with_insufficent_coin_x_in_pool(core_resources: &signer, owner: &signer, account: &signer) acquires PairPool, FakeCapabilities, PoolModuleEventHandle {
+    Timestamp::set_time_has_started_for_testing(core_resources);
+    initialize_module(owner);
     register_test_coins(owner);
 
     let owner_address = Signer::address_of(owner);
@@ -334,9 +432,11 @@ module SampleStaking::PoolModule {
     // Execute
     withdraw<CoinX, CoinY>(account, 102, 0);
   }
-  #[test(owner = @SampleStaking, account = @0x1)]
+  #[test(core_resources = @CoreResources, owner = @SampleStaking, account = @0x1)]
   #[expected_failure(abort_code = 1)]
-  fun test_withdraw_with_insufficent_coin_y_in_pool(owner: &signer, account: &signer) acquires PairPool, FakeCapabilities {
+  fun test_withdraw_with_insufficent_coin_y_in_pool(core_resources: &signer, owner: &signer, account: &signer) acquires PairPool, FakeCapabilities, PoolModuleEventHandle {
+    Timestamp::set_time_has_started_for_testing(core_resources);
+    initialize_module(owner);
     register_test_coins(owner);
 
     let owner_address = Signer::address_of(owner);
