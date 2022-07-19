@@ -3,6 +3,7 @@ module HandsonSecond::BaseCoin {
 
   const EALREADY_HAS_COIN: u64 = 1;
   const ENOT_HAS_COIN: u64 = 2;
+  const EINVALID_VALUE: u64 = 3;
 
   struct Coin<phantom CoinType> has key {
     value: u64
@@ -26,6 +27,14 @@ module HandsonSecond::BaseCoin {
     let value_ref = &mut borrow_global_mut<Coin<CoinType>>(to).value;
     *value_ref = *value_ref + coin.value;
     Coin { value: _ } = coin;
+  }
+
+  public fun withdraw<CoinType>(to: address, amount: u64): Coin<CoinType> acquires Coin {
+    assert!(exists<Coin<CoinType>>(to), ENOT_HAS_COIN);
+    let value_ref = &mut borrow_global_mut<Coin<CoinType>>(to).value;
+    assert!(*value_ref >= amount, EINVALID_VALUE);
+    *value_ref = *value_ref - amount;
+    Coin { value: amount }
   }
 
   #[test_only]
@@ -52,5 +61,16 @@ module HandsonSecond::BaseCoin {
     deposit<TestCoin>(account_address, coin);
     let coin_ref = borrow_global<Coin<TestCoin>>(account_address);
     assert!(coin_ref.value == 200, 0);
+  }
+  #[test(account = @0x1)]
+  fun test_withdraw(account: &signer) acquires Coin {
+    publish<TestCoin>(account);
+    let account_address = Signer::address_of(account);
+    mint<TestCoin>(account_address, 300);
+    let withdrawed = withdraw<TestCoin>(account_address, 80);
+    assert!(withdrawed.value == 80, 0);
+    let coin_ref = borrow_global<Coin<TestCoin>>(account_address);
+    assert!(coin_ref.value == 220, 0);
+    deposit<TestCoin>(account_address, withdrawed); // for not drop
   }
 }
