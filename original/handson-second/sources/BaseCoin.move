@@ -48,6 +48,18 @@ module HandsonSecond::BaseCoin {
     Coin { value: amount }
   }
 
+  // Getters
+  public fun value<CoinType>(account_address: address): u64 acquires Coin {
+    let coin_ref = borrow_global<Coin<CoinType>>(account_address);
+    value_internal<CoinType>(coin_ref)
+  }
+  public fun value_internal<CoinType>(coin: &Coin<CoinType>): u64 {
+    coin.value
+  }
+  public fun is_exist<CoinType>(account_address: address): bool {
+    exists<Coin<CoinType>>(account_address)
+  }
+
   #[test_only]
   struct TestCoin {}
   #[test(account = @0x1)]
