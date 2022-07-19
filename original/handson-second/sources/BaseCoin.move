@@ -21,6 +21,13 @@ module HandsonSecond::BaseCoin {
     *value_ref = *value_ref + amount;
   }
 
+  public fun deposit<CoinType>(to: address, coin: Coin<CoinType>) acquires Coin {
+    assert!(exists<Coin<CoinType>>(to), ENOT_HAS_COIN);
+    let value_ref = &mut borrow_global_mut<Coin<CoinType>>(to).value;
+    *value_ref = *value_ref + coin.value;
+    Coin { value: _ } = coin;
+  }
+
   #[test_only]
   struct TestCoin {}
   #[test(account = @0x1)]
@@ -36,5 +43,14 @@ module HandsonSecond::BaseCoin {
     mint<TestCoin>(account_address, 100);
     let coin_ref = borrow_global<Coin<TestCoin>>(account_address);
     assert!(coin_ref.value == 100, 0);
+  }
+  #[test(account = @0x1)]
+  fun test_deposit(account: &signer) acquires Coin {
+    publish<TestCoin>(account);
+    let account_address = Signer::address_of(account);
+    let coin = Coin { value: 200 };
+    deposit<TestCoin>(account_address, coin);
+    let coin_ref = borrow_global<Coin<TestCoin>>(account_address);
+    assert!(coin_ref.value == 200, 0);
   }
 }
