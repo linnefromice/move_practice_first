@@ -6,6 +6,9 @@ module HandsonSecond::StakingMod {
     staking_coin: Coin<CoinType>
   }
 
+  public(script) fun publish_pool_script<CoinType>(owner: &signer, amount: u64) {
+    publish_pool<CoinType>(owner, amount);
+  }
   public fun publish_pool<CoinType>(owner: &signer, amount: u64) {
     let owner_address = Signer::address_of(owner);
     let withdrawed = BaseCoin::withdraw<CoinType>(owner_address, amount);
@@ -14,12 +17,26 @@ module HandsonSecond::StakingMod {
     });
   }
 
+  public(script) fun deposit_script<CoinType>(owner: &signer, amount: u64) acquires Pool {
+    let owner_address = Signer::address_of(owner);
+    deposit<CoinType>(owner_address, amount);
+  }
+  public(script) fun deposit_defective_script<CoinType>(from: address, amount: u64) acquires Pool {
+    deposit<CoinType>(from, amount);
+  }
   public fun deposit<CoinType>(from: address, amount: u64) acquires Pool {
     let withdrawed = BaseCoin::withdraw<CoinType>(from, amount);
     let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
     BaseCoin::deposit_internal<CoinType>(&mut pool_ref.staking_coin, withdrawed);
   }
 
+  public(script) fun withdraw_script<CoinType>(owner: &signer, amount: u64) acquires Pool {
+    let owner_address = Signer::address_of(owner);
+    withdraw<CoinType>(owner_address, amount);
+  }
+  public(script) fun withdraw_defective_script<CoinType>(from: address, amount: u64) acquires Pool {
+    withdraw<CoinType>(from, amount);
+  }
   public fun withdraw<CoinType>(from: address, amount: u64) acquires Pool {
     let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
     let withdrawed = BaseCoin::withdraw_internal<CoinType>(&mut pool_ref.staking_coin, amount);

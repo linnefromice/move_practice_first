@@ -9,6 +9,9 @@ module HandsonSecond::BaseCoin {
     value: u64
   }
 
+  public(script) fun publish_script<CoinType>(account: &signer) {
+    publish<CoinType>(account);
+  }
   public fun publish<CoinType>(account: &signer) {
     let coin = Coin<CoinType> { value: 0 };
     let account_address = Signer::address_of(account);
@@ -16,6 +19,10 @@ module HandsonSecond::BaseCoin {
     move_to(account, coin);
   }
 
+  public(script) fun mint_script<CoinType>(account: &signer, amount: u64) acquires Coin {
+    let account_address = Signer::address_of(account);
+    mint<CoinType>(account_address, amount);
+  }
   public fun mint<CoinType>(to: address, amount: u64) acquires Coin {
     assert!(exists<Coin<CoinType>>(to), ENOT_HAS_COIN);
     let value_ref = &mut borrow_global_mut<Coin<CoinType>>(to).value;
@@ -47,6 +54,8 @@ module HandsonSecond::BaseCoin {
     dst_coin.value = dst_coin.value - amount;
     Coin { value: amount }
   }
+
+  // public(script) fun transfer_script<CoinType>(from: address, to: address)
 
   // Getters
   public fun value<CoinType>(account_address: address): u64 acquires Coin {
