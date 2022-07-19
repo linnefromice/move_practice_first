@@ -5,7 +5,7 @@ module HandsonSecond::BaseCoin {
   const ENOT_HAS_COIN: u64 = 2;
   const EINVALID_VALUE: u64 = 3;
 
-  struct Coin<phantom CoinType> has key {
+  struct Coin<phantom CoinType> has key, store {
     value: u64
   }
 
