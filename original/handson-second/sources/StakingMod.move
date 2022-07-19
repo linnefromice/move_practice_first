@@ -14,6 +14,18 @@ module HandsonSecond::StakingMod {
     });
   }
 
+  public fun deposit<CoinType>(from: address, amount: u64) acquires Pool {
+    let withdrawed = BaseCoin::withdraw<CoinType>(from, amount);
+    let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
+    BaseCoin::deposit_internal<CoinType>(&mut pool_ref.staking_coin, withdrawed);
+  }
+
+  public fun withdraw<CoinType>(from: address, amount: u64) acquires Pool {
+    let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
+    let withdrawed = BaseCoin::withdraw_internal<CoinType>(&mut pool_ref.staking_coin, amount);
+    BaseCoin::deposit<CoinType>(from, withdrawed);
+  }
+
   #[test_only]
   use HandsonSecond::Coins;
   #[test(account = @0x1)]
@@ -50,5 +62,35 @@ module HandsonSecond::StakingMod {
     assert!(BaseCoin::value_internal<Coins::BlueCoin>(&pool_blue.staking_coin) == 2, 0);
     assert!(BaseCoin::value<Coins::RedCoin>(user_red_address) == 10, 0);
     assert!(BaseCoin::value<Coins::BlueCoin>(user_blue_address) == 20, 0);
+  }
+  #[test(owner = @HandsonSecond, user = @0x1)]
+  fun test_deposit(owner: &signer, user: &signer) acquires Pool {
+    BaseCoin::publish<Coins::RedCoin>(owner);
+    BaseCoin::publish<Coins::RedCoin>(user);
+    let owner_address = Signer::address_of(owner);
+    let user_address = Signer::address_of(user);
+    BaseCoin::mint<Coins::RedCoin>(owner_address, 10);
+    BaseCoin::mint<Coins::RedCoin>(user_address, 90);
+
+    publish_pool<Coins::RedCoin>(owner, 10);
+    deposit<Coins::RedCoin>(user_address, 15);
+    let pool_ref = borrow_global<Pool<Coins::RedCoin>>(owner_address);
+    assert!(BaseCoin::value_internal<Coins::RedCoin>(&pool_ref.staking_coin) == 25, 0);
+    assert!(BaseCoin::value<Coins::RedCoin>(user_address) == 75, 0);
+  }
+  #[test(owner = @HandsonSecond, user = @0x1)]
+  fun test_withdraw(owner: &signer, user: &signer) acquires Pool {
+    BaseCoin::publish<Coins::BlueCoin>(owner);
+    BaseCoin::publish<Coins::BlueCoin>(user);
+    let owner_address = Signer::address_of(owner);
+    let user_address = Signer::address_of(user);
+    BaseCoin::mint<Coins::BlueCoin>(owner_address, 10);
+    BaseCoin::mint<Coins::BlueCoin>(user_address, 90);
+
+    publish_pool<Coins::BlueCoin>(owner, 10);
+    withdraw<Coins::BlueCoin>(user_address, 5);
+    let pool_ref = borrow_global<Pool<Coins::BlueCoin>>(owner_address);
+    assert!(BaseCoin::value_internal<Coins::BlueCoin>(&pool_ref.staking_coin) == 5, 0);
+    assert!(BaseCoin::value<Coins::BlueCoin>(user_address) == 95, 0);
   }
 }
