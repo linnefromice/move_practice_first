@@ -1,4 +1,6 @@
 module HandsonSecond::LPCoinMod {
+  use Std::Signer;
+
   struct LPCoinStatus has key {
     total_supply: u64,
     holder_count: u64
@@ -80,8 +82,6 @@ module HandsonSecond::LPCoinMod {
     status.holder_count
   }
 
-  #[test_only]
-  use Std::Signer;
   #[test(owner = @HandsonSecond)]
   fun test_initialize(owner: &signer) acquires LPCoinStatus {
     initialize(owner);
