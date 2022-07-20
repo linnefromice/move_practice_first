@@ -11,9 +11,12 @@ module HandsonSecond::LPCoinMod {
   }
 
   // Functions: Operate for owner
+  public(script) fun initialize_script(owner: &signer) {
+    initialize(owner);
+  }
   public fun initialize(owner: &signer) {
     let owner_address = Signer::address_of(owner);
-    assert!(owner_address == Config::owner_address(), 0);
+    Config::assert_admin(owner_address);
 
     move_to(owner, LPCoinStatus {
       total_supply: 0,
