@@ -3,6 +3,9 @@ module HandsonSecond::LPCoinMod {
     value: u64
   }
 
+  public(script) fun new_script(to: &signer) {
+    new(to);
+  }
   public fun new(to: &signer) {
     move_to(to, new_internal());
   }
