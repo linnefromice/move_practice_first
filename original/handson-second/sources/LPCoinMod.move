@@ -82,12 +82,26 @@ module HandsonSecond::LPCoinMod {
 
   #[test_only]
   use Std::Signer;
+  #[test(owner = @HandsonSecond)]
+  fun test_initialize(owner: &signer) acquires LPCoinStatus {
+    initialize(owner);
+    let owner_address = Signer::address_of(owner);
+    assert!(exists<LPCoinStatus>(owner_address), 0);
+    let status_ref = borrow_global<LPCoinStatus>(owner_address);
+    assert!(status_ref.total_supply == 0, 0);
+    assert!(status_ref.holder_count == 0, 0);
+  }
   #[test(owner = @HandsonSecond, to = @0x1)]
   fun test_new(owner: &signer, to: &signer) acquires LPCoinStatus {
     initialize(owner);
     new(to);
     let to_address = Signer::address_of(to);
     assert!(exists<LPCoin>(to_address), 0);
+
+    let owner_address = Signer::address_of(owner);
+    let status_ref = borrow_global<LPCoinStatus>(owner_address);
+    assert!(status_ref.total_supply == 0, 0);
+    assert!(status_ref.holder_count == 1, 0);
   }
   #[test(owner = @HandsonSecond, to = @0x1)]
   fun test_mint(owner: &signer, to: &signer) acquires LPCoin, LPCoinStatus {
@@ -97,6 +111,11 @@ module HandsonSecond::LPCoinMod {
     mint(to_address, 50);
     let coin_ref = borrow_global<LPCoin>(to_address);
     assert!(coin_ref.value == 50, 0);
+
+    let owner_address = Signer::address_of(owner);
+    let status_ref = borrow_global<LPCoinStatus>(owner_address);
+    assert!(status_ref.total_supply == 50, 0);
+    assert!(status_ref.holder_count == 1, 0);
   }
   #[test(owner = @HandsonSecond, to = @0x1)]
   fun test_burn(owner: &signer, to: &signer) acquires LPCoin, LPCoinStatus {
@@ -107,5 +126,10 @@ module HandsonSecond::LPCoinMod {
     burn(to_address, 35);
     let coin_ref = borrow_global<LPCoin>(to_address);
     assert!(coin_ref.value == 15, 0);
+
+    let owner_address = Signer::address_of(owner);
+    let status_ref = borrow_global<LPCoinStatus>(owner_address);
+    assert!(status_ref.total_supply == 15, 0);
+    assert!(status_ref.holder_count == 1, 0);
   }
 }
