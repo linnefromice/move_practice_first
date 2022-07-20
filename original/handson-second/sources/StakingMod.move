@@ -1,6 +1,7 @@
 module HandsonSecond::StakingMod {
   use Std::Signer;
   use HandsonSecond::BaseCoin::{Self, Coin};
+  use HandsonSecond::LPCoinMod;
 
   struct Pool<phantom CoinType> has key {
     staking_coin: Coin<CoinType>
@@ -28,6 +29,10 @@ module HandsonSecond::StakingMod {
     let withdrawed = BaseCoin::withdraw<CoinType>(from, amount);
     let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
     BaseCoin::deposit_internal<CoinType>(&mut pool_ref.staking_coin, withdrawed);
+
+    // For LPCoin
+    // if (!LPCoinMod::is_exist(from)) LPCoinMod::new(from);
+    LPCoinMod::mint(from, amount);
   }
 
   public(script) fun withdraw_script<CoinType>(owner: &signer, amount: u64) acquires Pool {
@@ -41,6 +46,10 @@ module HandsonSecond::StakingMod {
     let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
     let withdrawed = BaseCoin::withdraw_internal<CoinType>(&mut pool_ref.staking_coin, amount);
     BaseCoin::deposit<CoinType>(from, withdrawed);
+
+    // For LPCoin
+    // if (!LPCoinMod::is_exist(from)) LPCoinMod::new(from);
+    LPCoinMod::burn(from, amount);
   }
 
   #[test_only]
@@ -89,11 +98,14 @@ module HandsonSecond::StakingMod {
     BaseCoin::mint<Coins::RedCoin>(owner_address, 10);
     BaseCoin::mint<Coins::RedCoin>(user_address, 90);
 
+    LPCoinMod::new(user);
+
     publish_pool<Coins::RedCoin>(owner, 10);
     deposit<Coins::RedCoin>(user_address, 15);
     let pool_ref = borrow_global<Pool<Coins::RedCoin>>(owner_address);
     assert!(BaseCoin::value_internal<Coins::RedCoin>(&pool_ref.staking_coin) == 25, 0);
     assert!(BaseCoin::value<Coins::RedCoin>(user_address) == 75, 0);
+    assert!(LPCoinMod::value(user_address) == 15, 0);
   }
   #[test(owner = @HandsonSecond, user = @0x1)]
   fun test_withdraw(owner: &signer, user: &signer) acquires Pool {
@@ -104,10 +116,14 @@ module HandsonSecond::StakingMod {
     BaseCoin::mint<Coins::BlueCoin>(owner_address, 10);
     BaseCoin::mint<Coins::BlueCoin>(user_address, 90);
 
+    LPCoinMod::new(user);
+
     publish_pool<Coins::BlueCoin>(owner, 10);
-    withdraw<Coins::BlueCoin>(user_address, 5);
+    deposit<Coins::BlueCoin>(user_address, 30);
+    withdraw<Coins::BlueCoin>(user_address, 25);
     let pool_ref = borrow_global<Pool<Coins::BlueCoin>>(owner_address);
-    assert!(BaseCoin::value_internal<Coins::BlueCoin>(&pool_ref.staking_coin) == 5, 0);
-    assert!(BaseCoin::value<Coins::BlueCoin>(user_address) == 95, 0);
+    assert!(BaseCoin::value_internal<Coins::BlueCoin>(&pool_ref.staking_coin) == 15, 0);
+    assert!(BaseCoin::value<Coins::BlueCoin>(user_address) == 85, 0);
+    assert!(LPCoinMod::value(user_address) == 5, 0);
   }
 }

@@ -29,6 +29,18 @@ module HandsonSecond::LPCoinMod {
     coin.value = coin.value - amount;
   }
 
+  // Getters
+  public fun value(account_address: address): u64 acquires LPCoin {
+    let coin = borrow_global_mut<LPCoin>(account_address);
+    value_internal(coin)
+  }
+  public fun value_internal(coin: &LPCoin): u64 {
+    coin.value
+  }
+  public fun is_exist(account_address: address): bool {
+    exists<LPCoin>(account_address)
+  }
+
   #[test_only]
   use Std::Signer;
   #[test(to = @0x1)]
