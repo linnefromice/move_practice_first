@@ -18,6 +18,14 @@ module HandsonSecond::LPCoinMod {
     coin.value = coin.value + amount;
   }
 
+  public fun burn(to: address, amount: u64) acquires LPCoin {
+    let coin = borrow_global_mut<LPCoin>(to);
+    burn_internal(coin, amount);
+  }
+  public fun burn_internal(coin: &mut LPCoin, amount: u64) {
+    coin.value = coin.value - amount;
+  }
+
   #[test_only]
   use Std::Signer;
   #[test(to = @0x1)]
@@ -33,5 +41,14 @@ module HandsonSecond::LPCoinMod {
     mint(to_address, 50);
     let coin_ref = borrow_global<LPCoin>(to_address);
     assert!(coin_ref.value == 50, 0);
+  }
+  #[test(to = @0x1)]
+  fun test_burn(to: &signer) acquires LPCoin {
+    new(to);
+    let to_address = Signer::address_of(to);
+    mint(to_address, 50);
+    burn(to_address, 35);
+    let coin_ref = borrow_global<LPCoin>(to_address);
+    assert!(coin_ref.value == 15, 0);
   }
 }
