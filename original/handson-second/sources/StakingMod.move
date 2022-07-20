@@ -98,6 +98,7 @@ module HandsonSecond::StakingMod {
     BaseCoin::mint<Coins::RedCoin>(owner_address, 10);
     BaseCoin::mint<Coins::RedCoin>(user_address, 90);
 
+    LPCoinMod::initialize(owner);
     LPCoinMod::new(user);
 
     publish_pool<Coins::RedCoin>(owner, 10);
@@ -116,6 +117,7 @@ module HandsonSecond::StakingMod {
     BaseCoin::mint<Coins::BlueCoin>(owner_address, 10);
     BaseCoin::mint<Coins::BlueCoin>(user_address, 90);
 
+    LPCoinMod::initialize(owner);
     LPCoinMod::new(user);
 
     publish_pool<Coins::BlueCoin>(owner, 10);

@@ -82,22 +82,25 @@ module HandsonSecond::LPCoinMod {
 
   #[test_only]
   use Std::Signer;
-  #[test(to = @0x1)]
-  fun test_new(to: &signer) acquires LPCoinStatus {
+  #[test(owner = @HandsonSecond, to = @0x1)]
+  fun test_new(owner: &signer, to: &signer) acquires LPCoinStatus {
+    initialize(owner);
     new(to);
     let to_address = Signer::address_of(to);
     assert!(exists<LPCoin>(to_address), 0);
   }
-  #[test(to = @0x1)]
-  fun test_mint(to: &signer) acquires LPCoin, LPCoinStatus {
+  #[test(owner = @HandsonSecond, to = @0x1)]
+  fun test_mint(owner: &signer, to: &signer) acquires LPCoin, LPCoinStatus {
+    initialize(owner);
     new(to);
     let to_address = Signer::address_of(to);
     mint(to_address, 50);
     let coin_ref = borrow_global<LPCoin>(to_address);
     assert!(coin_ref.value == 50, 0);
   }
-  #[test(to = @0x1)]
-  fun test_burn(to: &signer) acquires LPCoin, LPCoinStatus {
+  #[test(owner = @HandsonSecond, to = @0x1)]
+  fun test_burn(owner: &signer, to: &signer) acquires LPCoin, LPCoinStatus {
+    initialize(owner);
     new(to);
     let to_address = Signer::address_of(to);
     mint(to_address, 50);
