@@ -1,6 +1,7 @@
 module HandsonSecond::StakingMod {
   use Std::Signer;
   use HandsonSecond::BaseCoin::{Self, Coin};
+  use HandsonSecond::Config;
   use HandsonSecond::LPCoinMod;
 
   struct Pool<phantom CoinType> has key {
@@ -27,7 +28,7 @@ module HandsonSecond::StakingMod {
   }
   public fun deposit<CoinType>(from: address, amount: u64) acquires Pool {
     let withdrawed = BaseCoin::withdraw<CoinType>(from, amount);
-    let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
+    let pool_ref = borrow_global_mut<Pool<CoinType>>(Config::owner_address());
     BaseCoin::deposit_internal<CoinType>(&mut pool_ref.staking_coin, withdrawed);
 
     // For LPCoin
@@ -43,7 +44,7 @@ module HandsonSecond::StakingMod {
     withdraw<CoinType>(from, amount);
   }
   public fun withdraw<CoinType>(from: address, amount: u64) acquires Pool {
-    let pool_ref = borrow_global_mut<Pool<CoinType>>(@HandsonSecond);
+    let pool_ref = borrow_global_mut<Pool<CoinType>>(Config::owner_address());
     let withdrawed = BaseCoin::withdraw_internal<CoinType>(&mut pool_ref.staking_coin, amount);
     BaseCoin::deposit<CoinType>(from, withdrawed);
 

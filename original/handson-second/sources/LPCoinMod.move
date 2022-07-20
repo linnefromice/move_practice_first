@@ -1,5 +1,6 @@
 module HandsonSecond::LPCoinMod {
   use Std::Signer;
+  use HandsonSecond::Config;
 
   struct LPCoinStatus has key {
     total_supply: u64,
@@ -12,7 +13,7 @@ module HandsonSecond::LPCoinMod {
   // Functions: Operate for owner
   public fun initialize(owner: &signer) {
     let owner_address = Signer::address_of(owner);
-    assert!(owner_address == @HandsonSecond, 0);
+    assert!(owner_address == Config::owner_address(), 0);
 
     move_to(owner, LPCoinStatus {
       total_supply: 0,
@@ -20,15 +21,15 @@ module HandsonSecond::LPCoinMod {
     });
   }
   fun increment_holder_count() acquires LPCoinStatus {
-    let status = borrow_global_mut<LPCoinStatus>(@HandsonSecond);
+    let status = borrow_global_mut<LPCoinStatus>(Config::owner_address());
     status.holder_count = status.holder_count + 1;
   }
   fun increment_total_supply(amount: u64) acquires LPCoinStatus {
-    let status = borrow_global_mut<LPCoinStatus>(@HandsonSecond);
+    let status = borrow_global_mut<LPCoinStatus>(Config::owner_address());
     status.total_supply = status.total_supply + amount;
   }
   fun decrement_total_supply(amount: u64) acquires LPCoinStatus {
-    let status = borrow_global_mut<LPCoinStatus>(@HandsonSecond);
+    let status = borrow_global_mut<LPCoinStatus>(Config::owner_address());
     status.total_supply = status.total_supply - amount;
   }
 
@@ -74,11 +75,11 @@ module HandsonSecond::LPCoinMod {
     exists<LPCoin>(account_address)
   }
   public fun total_supply(): u64 acquires LPCoinStatus {
-    let status = borrow_global<LPCoinStatus>(@HandsonSecond);
+    let status = borrow_global<LPCoinStatus>(Config::owner_address());
     status.total_supply
   }
   public fun holder_count(): u64 acquires LPCoinStatus {
-    let status = borrow_global<LPCoinStatus>(@HandsonSecond);
+    let status = borrow_global<LPCoinStatus>(Config::owner_address());
     status.holder_count
   }
 
