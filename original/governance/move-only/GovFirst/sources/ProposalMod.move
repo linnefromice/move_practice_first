@@ -8,7 +8,7 @@ module GovFirst::ProposalMod {
     proposer: address,
   }
 
-  fun create_proposal(proposer: &signer, title: string::String, content: string::String): Proposal {
+  public fun create_proposal(proposer: &signer, title: string::String, content: string::String): Proposal {
     let proposer_address = signer::address_of(proposer);
     Proposal {
       title,
