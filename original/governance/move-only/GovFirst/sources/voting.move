@@ -31,4 +31,10 @@ module gov_first::voting {
     let voting_forum = borrow_global<VotingForum>(account_address);
     assert!(vector::is_empty<BallotBox>(&voting_forum.ballet_boxes), 0);
   }
+
+  #[test(account = @0x1)]
+  #[expected_failure(abort_code = 1)]
+  fun test_publish_voting_forum_when_not_module_owner(account: &signer) {
+    publish_voting_forum(account);
+  }
 }
