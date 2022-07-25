@@ -10,6 +10,10 @@ module gov_first::voting_mod {
     ballot_boxes: vector<BallotBox>
   }
 
+  struct VotingPower has key {
+    value: u64
+  }
+
   const E_INVALID_VALUE: u64 = 1;
 
   public fun publish_voting_forum(owner: &signer) {
@@ -25,16 +29,23 @@ module gov_first::voting_mod {
     vector::push_back<BallotBox>(&mut voting_forum.ballot_boxes, ballot_box);
   }
 
-  public fun vote_to_yes(proposal_id: u64, number_of_votes: u64) acquires VotingForum {
-    vote_internal(proposal_id, number_of_votes, true);
+  public fun vote_to_yes(account: &signer, proposal_id: u64, number_of_votes: u64) acquires VotingForum, VotingPower {
+    vote_internal(account, proposal_id, number_of_votes, true);
   }
-  public fun vote_to_no(proposal_id: u64, number_of_votes: u64) acquires VotingForum {
-    vote_internal(proposal_id, number_of_votes, false);
+  public fun vote_to_no(account: &signer, proposal_id: u64, number_of_votes: u64) acquires VotingForum, VotingPower {
+    vote_internal(account, proposal_id, number_of_votes, false);
   }
-  fun vote_internal(proposal_id: u64, number_of_votes: u64, is_yes: bool) acquires VotingForum {
+  fun vote_internal(account: &signer, proposal_id: u64, number_of_votes: u64, is_yes: bool) acquires VotingForum, VotingPower {
     assert!(number_of_votes > 0, E_INVALID_VALUE);
     let (idx, finded_proposal_id) = find_proposal(proposal_id);
     assert!(finded_proposal_id > 0, 0);
+    
+    let account_address = signer::address_of(account);
+    assert!(exists<VotingPower>(account_address), 0);
+    let voting_power = borrow_global_mut<VotingPower>(account_address);
+    assert!(voting_power.value >= number_of_votes, 0);
+    voting_power.value = voting_power.value - number_of_votes;
+
     let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
     let ballet_box = vector::borrow_mut<BallotBox>(&mut voting_forum.ballot_boxes, idx);
     if (is_yes) {
@@ -55,6 +66,17 @@ module gov_first::voting_mod {
       idx = idx + 1;
     };
     (0, 0)
+  }
+
+  #[test_only]
+  public fun mint_voting_power(account: &signer, value: u64) acquires VotingPower {
+    let account_address = signer::address_of(account);
+    if (exists<VotingPower>(account_address)) {
+      let vp = borrow_global_mut<VotingPower>(account_address);
+      vp.value = vp.value + value;
+    } else {
+      move_to(account, VotingPower { value });
+    }
   }
 
   #[test(account = @gov_first)]
@@ -121,7 +143,7 @@ module gov_first::voting_mod {
   }
 
   #[test(owner = @gov_first, account = @0x1)]
-  fun test_vote(owner: &signer, account: &signer) acquires VotingForum {
+  fun test_vote(owner: &signer, account: &signer) acquires VotingForum, VotingPower {
     // initialize
     publish_voting_forum(owner);
     ballot_box_mod::initialize(owner);
@@ -136,8 +158,11 @@ module gov_first::voting_mod {
       string::utf8(b"proposal_title_2"),
       string::utf8(b"proposal_content_2"),
     );
+    mint_voting_power(account, 200);
+    let account_address = signer::address_of(account);
+    assert!(borrow_global<VotingPower>(account_address).value == 200, 0);
 
-    vote_to_yes(1, 100);
+    vote_to_yes(account, 1, 100);
     let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
     let ballot_box_1 = vector::borrow<BallotBox>(&voting_forum.ballot_boxes, 0);
     assert!(ballot_box_mod::yes_votes(ballot_box_1) == 100, 0);
@@ -145,8 +170,9 @@ module gov_first::voting_mod {
     let ballot_box_2 = vector::borrow<BallotBox>(&voting_forum.ballot_boxes, 1);
     assert!(ballot_box_mod::yes_votes(ballot_box_2) == 0, 0);
     assert!(ballot_box_mod::no_votes(ballot_box_2) == 0, 0);
+    assert!(borrow_global<VotingPower>(account_address).value == 100, 0);
 
-    vote_to_no(2, 25);
+    vote_to_no(account, 2, 25);
     let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
     let ballot_box_1 = vector::borrow<BallotBox>(&voting_forum.ballot_boxes, 0);
     assert!(ballot_box_mod::yes_votes(ballot_box_1) == 100, 0);
@@ -154,5 +180,6 @@ module gov_first::voting_mod {
     let ballot_box_2 = vector::borrow<BallotBox>(&voting_forum.ballot_boxes, 1);
     assert!(ballot_box_mod::yes_votes(ballot_box_2) == 0, 0);
     assert!(ballot_box_mod::no_votes(ballot_box_2) == 25, 0);
+    assert!(borrow_global<VotingPower>(account_address).value == 75, 0);
   }
 }
