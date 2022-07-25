@@ -8,6 +8,6 @@ module GovFirst::ConfigMod {
   }
 
   public fun is_module_owner(account: address) {
-    assert!(account == module_owner(), 0);
+    assert!(account == module_owner(), E_NOT_MODULE_OWNER);
   }
 }
