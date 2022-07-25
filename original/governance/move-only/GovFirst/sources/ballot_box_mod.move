@@ -1,7 +1,7 @@
-module GovFirst::BallotBoxMod {
+module gov_first::ballot_box_mod {
   use std::signer;
-  use GovFirst::ProposalMod::Proposal;
-  use GovFirst::ConfigMod;
+  use gov_first::proposal_mod::Proposal;
+  use gov_first::config_mod;
 
   struct ProposalIdCounter has key {
     value: u64
@@ -16,12 +16,12 @@ module GovFirst::BallotBoxMod {
 
   public fun initialize(owner: &signer) {
     let owner_address = signer::address_of(owner);
-    ConfigMod::is_module_owner(owner_address);
+    config_mod::is_module_owner(owner_address);
     move_to(owner, ProposalIdCounter { value: 0 });
   }
 
   fun create_ballot_box(proposal: Proposal): BallotBox acquires ProposalIdCounter {
-    let id_counter = borrow_global_mut<ProposalIdCounter>(ConfigMod::module_owner());
+    let id_counter = borrow_global_mut<ProposalIdCounter>(config_mod::module_owner());
     id_counter.value = id_counter.value + 1;
     BallotBox {
       uid: id_counter.value,
@@ -34,8 +34,8 @@ module GovFirst::BallotBoxMod {
   #[test_only]
   use std::string;
   #[test_only]
-  use GovFirst::ProposalMod;
-  #[test(account = @GovFirst)]
+  use gov_first::proposal_mod;
+  #[test(account = @gov_first)]
   fun test_initialize(account: &signer) acquires ProposalIdCounter {
     initialize(account);
     let account_address = signer::address_of(account);
@@ -48,12 +48,12 @@ module GovFirst::BallotBoxMod {
   fun test_initialize_when_not_owner_module(account: &signer) {
     initialize(account);
   }
-  #[test(account = @GovFirst)]
+  #[test(account = @gov_first)]
   fun test_create_ballot_box(account: &signer) acquires ProposalIdCounter {
     initialize(account);
     let account_address = signer::address_of(account);
     assert!(borrow_global<ProposalIdCounter>(account_address).value == 0, 0);
-    let proposal = ProposalMod::create_proposal(
+    let proposal = proposal_mod::create_proposal(
       account,
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),

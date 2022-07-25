@@ -1,5 +1,5 @@
-module GovFirst::ConfigMod {
-  const MODULE_OWNER: address = @GovFirst;
+module gov_first::config_mod {
+  const MODULE_OWNER: address = @gov_first;
 
   const E_NOT_MODULE_OWNER: u64 = 1;
 

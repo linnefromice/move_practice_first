@@ -1,4 +1,4 @@
-module GovFirst::ProposalMod {
+module gov_first::proposal_mod {
   use std::signer;
   use std::string;
 
