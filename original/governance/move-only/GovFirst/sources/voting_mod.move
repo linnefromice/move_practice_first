@@ -10,6 +10,10 @@ module gov_first::voting_mod {
     ballot_boxes: vector<BallotBox>
   }
 
+  struct VotingPower has key {
+    value: u64
+  }
+
   const E_INVALID_VALUE: u64 = 1;
 
   public fun publish_voting_forum(owner: &signer) {
@@ -55,6 +59,17 @@ module gov_first::voting_mod {
       idx = idx + 1;
     };
     (0, 0)
+  }
+
+  #[test_only]
+  public fun mint_voting_power(account: &signer, value: u64) acquires VotingPower {
+    let account_address = signer::address_of(account);
+    if (exists<VotingPower>(account_address)) {
+      move_to(account, VotingPower { value });
+    } else {
+      let vp = borrow_global_mut<VotingPower>(account_address);
+      vp.value = vp.value + value;
+    }
   }
 
   #[test(account = @gov_first)]
