@@ -25,7 +25,13 @@ module gov_first::voting {
     vector::push_back<BallotBox>(&mut voting_forum.ballet_boxes, ballot_box);
   }
 
-  public fun vote(proposal_id: u64, number_of_votes: u64, is_yes: bool) acquires VotingForum {
+  public fun vote_to_yes(proposal_id: u64, number_of_votes: u64) acquires VotingForum {
+    vote_internal(proposal_id, number_of_votes, true);
+  }
+  public fun vote_to_no(proposal_id: u64, number_of_votes: u64) acquires VotingForum {
+    vote_internal(proposal_id, number_of_votes, false);
+  }
+  fun vote_internal(proposal_id: u64, number_of_votes: u64, is_yes: bool) acquires VotingForum {
     assert!(number_of_votes > 0, E_INVALID_VALUE);
     let (idx, finded_proposal_id) = find_proposal(proposal_id);
     assert!(finded_proposal_id > 0, 0);
@@ -131,7 +137,7 @@ module gov_first::voting {
       string::utf8(b"proposal_content_2"),
     );
 
-    vote(1, 100, true);
+    vote_to_yes(1, 100);
     let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
     let ballot_box_1 = vector::borrow<BallotBox>(&voting_forum.ballet_boxes, 0);
     assert!(ballot_box_mod::yes_votes(ballot_box_1) == 100, 0);
@@ -140,7 +146,7 @@ module gov_first::voting {
     assert!(ballot_box_mod::yes_votes(ballot_box_2) == 0, 0);
     assert!(ballot_box_mod::no_votes(ballot_box_2) == 0, 0);
 
-    vote(2, 25, false);
+    vote_to_no(2, 25);
     let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
     let ballot_box_1 = vector::borrow<BallotBox>(&voting_forum.ballet_boxes, 0);
     assert!(ballot_box_mod::yes_votes(ballot_box_1) == 100, 0);
