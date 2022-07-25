@@ -1,0 +1,10 @@
+[package]
+name = "gov_first"
+version = "0.0.0"
+
+[dependencies]
+MoveStdlib = { git = "https://github.com/move-language/move.git", subdir = "language/move-stdlib", rev = "main" }
+
+[addresses]
+gov_first = "0xFFFF"
+std =  "0x1"
