@@ -10,6 +10,8 @@ module gov_first::ballot_box_mod {
   struct BallotBox has key, store {
     uid: u64,
     proposal: Proposal,
+    yes_votes: u128,
+    no_votes: u128,
     expiration_timestamp: u64, // temp
     created_at: u64, // temp
   }
@@ -26,14 +28,30 @@ module gov_first::ballot_box_mod {
     BallotBox {
       uid: id_counter.value,
       proposal,
+      yes_votes: 0,
+      no_votes: 0,
       expiration_timestamp: 0,
       created_at: 0,
     }
   }
 
-  // Getter
+  public fun vote_to_yes(obj: &mut BallotBox, number_of_votes: u128) {
+    obj.yes_votes = obj.yes_votes + number_of_votes;
+  }
+
+  public fun vote_to_no(obj: &mut BallotBox, number_of_votes: u128) {
+    obj.no_votes = obj.no_votes + number_of_votes;
+  }
+
+  // Getter/Setter
   public fun uid(obj: &BallotBox): u64 {
     obj.uid
+  }
+  public fun yes_votes(obj: &BallotBox): u128 {
+    obj.yes_votes
+  }
+  public fun no_votes(obj: &BallotBox): u128 {
+    obj.no_votes
   }
 
   #[test_only]
@@ -65,9 +83,27 @@ module gov_first::ballot_box_mod {
     );
     let ballot_box = create_ballot_box(proposal);
     assert!(ballot_box.uid == 1, 0);
+    assert!(ballot_box.yes_votes == 0, 0);
+    assert!(ballot_box.no_votes == 0, 0);
     assert!(ballot_box.expiration_timestamp == 0, 0);
     assert!(ballot_box.created_at == 0, 0);
     assert!(borrow_global<ProposalIdCounter>(account_address).value == 1, 0);
+
+    move_to(account, ballot_box);
+  }
+  #[test(account = @gov_first)]
+  fun test_vote(account: &signer) acquires ProposalIdCounter {
+    initialize(account);
+    let proposal = proposal_mod::create_proposal(
+      account,
+      string::utf8(b"proposal_title"),
+      string::utf8(b"proposal_content"),
+    );
+    let ballot_box = create_ballot_box(proposal);
+    vote_to_yes(&mut ballot_box, 10);
+    vote_to_no(&mut ballot_box, 5);
+    assert!(ballot_box.yes_votes == 10, 0);
+    assert!(ballot_box.no_votes == 5, 0);
 
     move_to(account, ballot_box);
   }
