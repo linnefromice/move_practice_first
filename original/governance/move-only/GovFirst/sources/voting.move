@@ -23,6 +23,19 @@ module gov_first::voting {
     vector::push_back<BallotBox>(&mut voting_forum.ballet_boxes, ballot_box);
   }
 
+  public fun find_proposal(proposal_id: u64): (u64, u64) acquires VotingForum {
+    let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
+    let idx = 0;
+    let len = vector::length<BallotBox>(&voting_forum.ballet_boxes);
+    while (idx < len) {
+      let ballot_box = vector::borrow<BallotBox>(&voting_forum.ballet_boxes, idx);
+      let uid = ballot_box_mod::uid(ballot_box);
+      if (uid == proposal_id) return (idx, uid);
+      idx = idx + 1;
+    };
+    (0, 0)
+  }
+
   #[test(account = @gov_first)]
   fun test_publish_voting_forum(account: &signer) acquires VotingForum {
     publish_voting_forum(account);
@@ -52,5 +65,37 @@ module gov_first::voting {
     let owner_address = signer::address_of(owner);
     let voting_forum = borrow_global<VotingForum>(owner_address);
     assert!(vector::length<BallotBox>(&voting_forum.ballet_boxes) == 1, 0);
+  }
+
+  #[test(owner = @gov_first, account = @0x1)]
+  fun test_find_proposal(owner: &signer, account: &signer) acquires VotingForum {
+    // initialize
+    publish_voting_forum(owner);
+    ballot_box_mod::initialize(owner);
+
+    add_proposal(
+      account,
+      string::utf8(b"proposal_title_1"),
+      string::utf8(b"proposal_content_1"),
+    );
+    add_proposal(
+      account,
+      string::utf8(b"proposal_title_2"),
+      string::utf8(b"proposal_content_2"),
+    );
+    add_proposal(
+      account,
+      string::utf8(b"proposal_title_3"),
+      string::utf8(b"proposal_content_3"),
+    );
+    let (idx, uid) = find_proposal(2);
+    assert!(idx == 1, 0);
+    assert!(uid == 2, 0);
+    let (idx, uid) = find_proposal(3);
+    assert!(idx == 2, 0);
+    assert!(uid == 3, 0);
+    let (idx, uid) = find_proposal(4);
+    assert!(idx == 0, 0);
+    assert!(uid == 0, 0);
   }
 }
