@@ -51,14 +51,19 @@ module GovFirst::BallotBoxMod {
   #[test(account = @GovFirst)]
   fun test_create_ballot_box(account: &signer) acquires ProposalIdCounter {
     initialize(account);
+    let account_address = signer::address_of(account);
+    assert!(borrow_global<ProposalIdCounter>(account_address).value == 0, 0);
     let proposal = ProposalMod::create_proposal(
       account,
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
     );
     let ballot_box = create_ballot_box(proposal);
+    assert!(ballot_box.uid == 1, 0);
     assert!(ballot_box.expiration_timestamp == 0, 0);
     assert!(ballot_box.created_at == 0, 0);
+    assert!(borrow_global<ProposalIdCounter>(account_address).value == 1, 0);
+
     move_to(account, ballot_box);
   }
 }
