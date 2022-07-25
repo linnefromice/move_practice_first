@@ -37,4 +37,20 @@ module gov_first::voting {
   fun test_publish_voting_forum_when_not_module_owner(account: &signer) {
     publish_voting_forum(account);
   }
+
+  #[test(owner = @gov_first, account = @0x1)]
+  fun test_add_proposal(owner: &signer, account: &signer) acquires VotingForum {
+    // initialize
+    publish_voting_forum(owner);
+    ballot_box_mod::initialize(owner);
+
+    add_proposal(
+      account,
+      string::utf8(b"proposal_title"),
+      string::utf8(b"proposal_content"),
+    );
+    let owner_address = signer::address_of(owner);
+    let voting_forum = borrow_global<VotingForum>(owner_address);
+    assert!(vector::length<BallotBox>(&voting_forum.ballet_boxes) == 1, 0);
+  }
 }
