@@ -20,7 +20,7 @@ module gov_first::ballot_box_mod {
     move_to(owner, ProposalIdCounter { value: 0 });
   }
 
-  fun create_ballot_box(proposal: Proposal): BallotBox acquires ProposalIdCounter {
+  public fun create_ballot_box(proposal: Proposal): BallotBox acquires ProposalIdCounter {
     let id_counter = borrow_global_mut<ProposalIdCounter>(config_mod::module_owner());
     id_counter.value = id_counter.value + 1;
     BallotBox {
