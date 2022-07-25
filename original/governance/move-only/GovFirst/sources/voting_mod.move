@@ -1,4 +1,4 @@
-module gov_first::voting {
+module gov_first::voting_mod {
   use std::signer;
   use std::string;
   use std::vector;
