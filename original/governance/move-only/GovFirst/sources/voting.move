@@ -10,6 +10,8 @@ module gov_first::voting {
     ballet_boxes: vector<BallotBox>
   }
 
+  const E_INVALID_VALUE: u64 = 1;
+
   public fun publish_voting_forum(owner: &signer) {
     let owner_address = signer::address_of(owner);
     config_mod::is_module_owner(owner_address);
@@ -21,6 +23,19 @@ module gov_first::voting {
     let ballot_box = ballot_box_mod::create_ballot_box(proposal);
     let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
     vector::push_back<BallotBox>(&mut voting_forum.ballet_boxes, ballot_box);
+  }
+
+  public fun vote(proposal_id: u64, number_of_votes: u64, is_yes: bool) acquires VotingForum {
+    assert!(number_of_votes > 0, E_INVALID_VALUE);
+    let (idx, finded_proposal_id) = find_proposal(proposal_id);
+    assert!(finded_proposal_id > 0, 0);
+    let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
+    let ballet_box = vector::borrow_mut<BallotBox>(&mut voting_forum.ballet_boxes, idx);
+    if (is_yes) {
+      ballot_box_mod::vote_to_yes(ballet_box, (number_of_votes as u128));
+    } else {
+      ballot_box_mod::vote_to_no(ballet_box, (number_of_votes as u128));
+    }
   }
 
   public fun find_proposal(proposal_id: u64): (u64, u64) acquires VotingForum {
@@ -97,5 +112,41 @@ module gov_first::voting {
     let (idx, uid) = find_proposal(4);
     assert!(idx == 0, 0);
     assert!(uid == 0, 0);
+  }
+
+  #[test(owner = @gov_first, account = @0x1)]
+  fun test_vote(owner: &signer, account: &signer) acquires VotingForum {
+    // initialize
+    publish_voting_forum(owner);
+    ballot_box_mod::initialize(owner);
+
+    add_proposal(
+      account,
+      string::utf8(b"proposal_title_1"),
+      string::utf8(b"proposal_content_1"),
+    );
+    add_proposal(
+      account,
+      string::utf8(b"proposal_title_2"),
+      string::utf8(b"proposal_content_2"),
+    );
+
+    vote(1, 100, true);
+    let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
+    let ballot_box_1 = vector::borrow<BallotBox>(&voting_forum.ballet_boxes, 0);
+    assert!(ballot_box_mod::yes_votes(ballot_box_1) == 100, 0);
+    assert!(ballot_box_mod::no_votes(ballot_box_1) == 0, 0);
+    let ballot_box_2 = vector::borrow<BallotBox>(&voting_forum.ballet_boxes, 1);
+    assert!(ballot_box_mod::yes_votes(ballot_box_2) == 0, 0);
+    assert!(ballot_box_mod::no_votes(ballot_box_2) == 0, 0);
+
+    vote(2, 25, false);
+    let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
+    let ballot_box_1 = vector::borrow<BallotBox>(&voting_forum.ballet_boxes, 0);
+    assert!(ballot_box_mod::yes_votes(ballot_box_1) == 100, 0);
+    assert!(ballot_box_mod::no_votes(ballot_box_1) == 0, 0);
+    let ballot_box_2 = vector::borrow<BallotBox>(&voting_forum.ballet_boxes, 1);
+    assert!(ballot_box_mod::yes_votes(ballot_box_2) == 0, 0);
+    assert!(ballot_box_mod::no_votes(ballot_box_2) == 25, 0);
   }
 }
