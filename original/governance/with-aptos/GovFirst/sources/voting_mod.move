@@ -6,8 +6,13 @@ module gov_first::voting_mod {
   use gov_first::ballot_box_mod::{Self, BallotBox};
   use gov_first::config_mod;
 
+  struct BallotBoxKey has copy, drop, store {
+    uid: u64,
+    proposer: address
+  }
+
   struct VotingForum has key {
-    ballot_boxes: Table<u64, BallotBox>,
+    ballot_boxes: Table<BallotBoxKey, BallotBox>,
   }
 
   public fun initialize(owner: &signer) {
@@ -21,7 +26,7 @@ module gov_first::voting_mod {
     title: string::String,
     content: string::String,
     expiration_secs: u64
-  ) acquires VotingForum {
+  ): BallotBoxKey acquires VotingForum {
     let proposal = proposal_mod::create_proposal(
       proposer,
       title,
@@ -29,7 +34,12 @@ module gov_first::voting_mod {
     );
     let ballot_box = ballot_box_mod::create_ballot_box(proposal, expiration_secs);
     let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
-    table::add(&mut voting_forum.ballot_boxes, ballot_box_mod::uid(&ballot_box), ballot_box);
+    let key = BallotBoxKey {
+      uid: ballot_box_mod::uid(&ballot_box),
+      proposer: signer::address_of(proposer),
+    };
+    table::add(&mut voting_forum.ballot_boxes, key, ballot_box);
+    key
   }
 
   #[test_only]
@@ -55,7 +65,7 @@ module gov_first::voting_mod {
     timestamp::set_time_has_started_for_testing(framework);
     ballot_box_mod::initialize(owner);
     initialize(owner);
-    propose(
+    let key = propose(
       account,
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
@@ -63,8 +73,8 @@ module gov_first::voting_mod {
     );
     let owner_address = signer::address_of(owner);
     let voting_forum = borrow_global<VotingForum>(owner_address);
-    assert!(table::length<u64, BallotBox>(&voting_forum.ballot_boxes) == 1, 0);
-    let ballot_box = table::borrow<u64, BallotBox>(&voting_forum.ballot_boxes, 1);
+    assert!(table::length<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes) == 1, 0);
+    let ballot_box = table::borrow<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes, key);
     assert!(ballot_box_mod::uid(ballot_box) == 1, 0);
   }
 }
