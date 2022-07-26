@@ -93,5 +93,6 @@ module gov_first::voting_mod {
     assert!(table::length<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes) == 1, 0);
     let ballot_box = table::borrow<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes, key);
     assert!(ballot_box_mod::uid(ballot_box) == 1, 0);
+    assert!(event::get_event_handle_counter<ProposeEvent>(&voting_forum.propose_events) == 1, 0);
   }
 }
