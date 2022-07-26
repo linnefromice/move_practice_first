@@ -12,6 +12,7 @@ module gov_first::ballot_box_mod {
   struct BallotBox has key {
     uid: u64,
     proposal: Proposal,
+    expiration_secs: u64,
     created_at: u64,
   }
 
@@ -23,17 +24,18 @@ module gov_first::ballot_box_mod {
     move_to(owner, IdCounter { value: 0 });
   }
 
-  public fun create_ballot_box(proposal: Proposal): BallotBox acquires IdCounter {
+  public fun create_ballot_box(proposal: Proposal, expiration_secs: u64): BallotBox acquires IdCounter {
     let module_owner = config_mod::module_owner();
     assert!(exists<IdCounter>(module_owner), E_NOT_INITIALIZED);
     // uid
     let id_counter = borrow_global_mut<IdCounter>(module_owner);
     id_counter.value = id_counter.value + 1;
     // created_at
-    let current_seconds = timestamp::now_seconds();
+    let current_seconds = timestamp::now_microseconds();
     BallotBox {
       uid: id_counter.value,
       proposal,
+      expiration_secs,
       created_at: current_seconds,
     }
   }
@@ -53,15 +55,20 @@ module gov_first::ballot_box_mod {
   #[test(framework = @AptosFramework, owner = @gov_first, account = @0x1)]
   fun test_create_ballot_box(framework: &signer, owner: &signer, account: &signer) acquires IdCounter {
     timestamp::set_time_has_started_for_testing(framework);
+    let per_microseconds = 1000 * 1000;
+    let day = 24 * 60 * 60;
+    timestamp::update_global_time_for_test(7 * day * per_microseconds);
+
     initialize(owner);
     let proposal = proposal_mod::create_proposal(
       account,
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
     );
-    let ballot_box = create_ballot_box(proposal);
+    let ballot_box = create_ballot_box(proposal, day);
     assert!(ballot_box.uid == 1, 0);
-    assert!(ballot_box.created_at == 0, 0);
+    assert!(ballot_box.expiration_secs == 1 * day, 0);
+    assert!(ballot_box.created_at == 7 * day * per_microseconds, 0);
 
     move_to(account, ballot_box);
   }
@@ -75,7 +82,7 @@ module gov_first::ballot_box_mod {
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
     );
-    let ballot_box = create_ballot_box(proposal); // fail here
+    let ballot_box = create_ballot_box(proposal, 100); // fail here
     move_to(account, ballot_box);
   }
 }
