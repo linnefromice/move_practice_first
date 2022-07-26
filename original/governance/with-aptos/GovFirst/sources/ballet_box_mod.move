@@ -9,7 +9,7 @@ module gov_first::ballot_box_mod {
     value: u64
   }
 
-  struct BallotBox has key {
+  struct BallotBox has key, store {
     uid: u64,
     proposal: Proposal,
     expiration_secs: u64,
