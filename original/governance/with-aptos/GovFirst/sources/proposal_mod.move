@@ -2,7 +2,7 @@ module gov_first::proposal_mod {
   use std::signer;
   use std::string;
 
-  struct Proposal has key {
+  struct Proposal has key, store {
     title: string::String,
     content: string::String,
     proposer: address,
