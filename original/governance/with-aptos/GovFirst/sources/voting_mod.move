@@ -59,8 +59,20 @@ module gov_first::voting_mod {
     key
   }
 
+  public fun exists_proposal(uid: u64, proposer: address): bool acquires VotingForum {
+    let key = BallotBoxKey { uid, proposer };
+    let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
+    table::contains<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes, key)
+  }
+
   #[test_only]
   use std::timestamp;
+  #[test_only]
+  fun initialize_for_test(framework: &signer, owner: &signer) {
+    timestamp::set_time_has_started_for_testing(framework);
+    ballot_box_mod::initialize(owner);
+    initialize(owner);
+  }
 
   #[test(owner = @gov_first)]
   fun test_initialize(owner: &signer) {
@@ -79,9 +91,7 @@ module gov_first::voting_mod {
     let per_microseconds = 1000 * 1000;
     let day = 24 * 60 * 60;
 
-    timestamp::set_time_has_started_for_testing(framework);
-    ballot_box_mod::initialize(owner);
-    initialize(owner);
+    initialize_for_test(framework, owner);
     let key = propose(
       account,
       string::utf8(b"proposal_title"),
@@ -94,5 +104,25 @@ module gov_first::voting_mod {
     let ballot_box = table::borrow<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes, key);
     assert!(ballot_box_mod::uid(ballot_box) == 1, 0);
     assert!(event::get_event_handle_counter<ProposeEvent>(&voting_forum.propose_events) == 1, 0);
+  }
+
+  #[test(framework = @AptosFramework, owner = @gov_first, account = @0x1)]
+  fun test_exist_proposal_after_propose(framework: &signer, owner: &signer, account: &signer) acquires VotingForum {
+    initialize_for_test(framework, owner);
+    let key = propose(
+      account,
+      string::utf8(b"proposal_title"),
+      string::utf8(b"proposal_content"),
+      0
+    );
+    assert!(exists_proposal(key.uid, key.proposer), 0);
+    let account_address = signer::address_of(account);
+    assert!(!exists_proposal(0, account_address), 0);
+  }
+  #[test(framework = @AptosFramework, owner = @gov_first, account = @0x1)]
+  fun test_exist_proposal_without_propose(framework: &signer, owner: &signer, account: &signer) acquires VotingForum {
+    initialize_for_test(framework, owner);
+    let account_address = signer::address_of(account);
+    assert!(!exists_proposal(0, account_address), 0);
   }
 }
