@@ -40,6 +40,11 @@ module gov_first::ballot_box_mod {
     }
   }
 
+  // Getter
+  public fun uid(obj: &BallotBox): u64 {
+    obj.uid
+  }
+
   #[test(owner = @gov_first)]
   fun test_initialize(owner: &signer) acquires IdCounter {
     initialize(owner);
