@@ -1,10 +1,16 @@
 module gov_first::voting_mod {
   use std::signer;
   use std::string;
+  use std::event::{Self, EventHandle};
   use aptos_framework::table::{Self, Table};
   use gov_first::proposal_mod;
   use gov_first::ballot_box_mod::{Self, BallotBox};
   use gov_first::config_mod;
+
+  struct ProposeEvent has drop, store {
+    uid: u64,
+    proposer: address,
+  }
 
   struct BallotBoxKey has copy, drop, store {
     uid: u64,
@@ -13,12 +19,16 @@ module gov_first::voting_mod {
 
   struct VotingForum has key {
     ballot_boxes: Table<BallotBoxKey, BallotBox>,
+    propose_events: EventHandle<ProposeEvent>,
   }
 
   public fun initialize(owner: &signer) {
     let owner_address = signer::address_of(owner);
     config_mod::is_module_owner(owner_address);
-    move_to(owner, VotingForum { ballot_boxes: table::new() })
+    move_to(owner, VotingForum {
+      ballot_boxes: table::new(),
+      propose_events: event::new_event_handle<ProposeEvent>(owner)
+    })
   }
 
   public fun propose(
@@ -39,6 +49,13 @@ module gov_first::voting_mod {
       proposer: signer::address_of(proposer),
     };
     table::add(&mut voting_forum.ballot_boxes, key, ballot_box);
+    event::emit_event<ProposeEvent>(
+      &mut voting_forum.propose_events,
+      ProposeEvent {
+        uid: key.uid,
+        proposer: key.proposer,
+      }
+    );
     key
   }
 
