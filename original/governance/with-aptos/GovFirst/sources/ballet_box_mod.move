@@ -1,9 +1,8 @@
 module gov_first::ballot_box_mod {
   use std::signer;
-  use std::string;
   use aptos_framework::timestamp;
   use gov_first::config_mod;
-  use gov_first::proposal_mod::{Self, Proposal};
+  use gov_first::proposal_mod::Proposal;
 
   struct IdCounter has key {
     value: u64
@@ -45,6 +44,10 @@ module gov_first::ballot_box_mod {
     obj.uid
   }
 
+  #[test_only]
+  use std::string;
+  #[test_only]
+  use gov_first::proposal_mod;
   #[test(owner = @gov_first)]
   fun test_initialize(owner: &signer) acquires IdCounter {
     initialize(owner);
