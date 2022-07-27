@@ -68,12 +68,20 @@ module gov_first::test_two_mod {
     publish_item_box<Sword>(account);
     publish_item_box<Spear>(account);
     publish_item_box<Wand>(account);
-    // publish_item_box<Gun>(account);
+    publish_item_box<Gun>(account);
     publish_item_box<Portion>(account);
     add_item<Sword>(account, Item<Sword> { kind: Sword { attack: 100, both_hands: false }, level: 50, getted_at: 0 });
     add_item<Spear>(account, Item<Spear> { kind: Spear { attack: 50, length: 50 }, level: 50, getted_at: 0 });
     add_item<Wand>(account, Item<Wand> { kind: Wand { magic_power: 200, is_white: true, is_black: true }, level: 50, getted_at: 0 });
     // add_item<Gun>(account, Item<Gun> { kind: Gun {}, level: 50, getted_at: 0 });
     add_item<Portion>(account, Item<Portion> { kind: Portion { value: 300 }, level: 50, getted_at: 0 });
+    add_item<Portion>(account, Item<Portion> { kind: Portion { value: 500 }, level: 50, getted_at: 0 });
+    add_item<Portion>(account, Item<Portion> { kind: Portion { value: 1000 }, level: 50, getted_at: 0 });
+    let account_address = signer::address_of(account);
+    assert!(table::length<u64, Item<Sword>>(&borrow_global_mut<ItemBox<Sword>>(account_address).items) == 1, 0);
+    assert!(table::length<u64, Item<Spear>>(&borrow_global_mut<ItemBox<Spear>>(account_address).items) == 1, 0);
+    assert!(table::length<u64, Item<Wand>>(&borrow_global_mut<ItemBox<Wand>>(account_address).items) == 1, 0);
+    assert!(table::empty<u64, Item<Gun>>(&borrow_global_mut<ItemBox<Gun>>(account_address).items), 0);
+    assert!(table::length<u64, Item<Portion>>(&borrow_global_mut<ItemBox<Portion>>(account_address).items) == 3, 0);
   }
 }
