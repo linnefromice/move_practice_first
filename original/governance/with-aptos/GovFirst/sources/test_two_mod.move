@@ -38,12 +38,12 @@ module gov_first::test_two_mod {
     items: Table<u64, Item<Kind>>
   }
 
+  // For General
   fun publish_item_box<Kind: store>(account: &signer) {
     move_to(account, ItemBox<Kind> {
       items: table::new()
     })
   }
-
   fun add_item<Kind: store>(account: &signer, item: Item<Kind>) acquires ItemBox {
     let account_address = signer::address_of(account);
     assert!(exists<ItemBox<Kind>>(account_address), 0);
@@ -51,6 +51,27 @@ module gov_first::test_two_mod {
     let length = table::length<u64, Item<Kind>>(&box.items);
     table::add<u64, Item<Kind>>(&mut box.items, length + 1, item);
   }
+
+  // For Sword
+  fun add_sword(account: &signer, level: u64, attack: u64, both_hands: bool) acquires ItemBox {
+    let item = Item<Sword> {
+      kind: Sword { attack, both_hands },
+      level,
+      getted_at: 0
+    };
+    add_item<Sword>(account, item);
+  }
+
+  // For Portion
+  fun add_portion(account: &signer, level: u64, value: u64) acquires ItemBox {
+    let item = Item<Portion> {
+      kind: Portion { value },
+      level,
+      getted_at: 0
+    };
+    add_item<Portion>(account, item);
+  }
+
 
   #[test(account = @0x1)]
   fun test_publish_item_box(account: &signer) {
@@ -83,5 +104,23 @@ module gov_first::test_two_mod {
     assert!(table::length<u64, Item<Wand>>(&borrow_global_mut<ItemBox<Wand>>(account_address).items) == 1, 0);
     assert!(table::empty<u64, Item<Gun>>(&borrow_global_mut<ItemBox<Gun>>(account_address).items), 0);
     assert!(table::length<u64, Item<Portion>>(&borrow_global_mut<ItemBox<Portion>>(account_address).items) == 3, 0);
+  }
+  #[test(account = @0x1)]
+  fun test_add_item_by_exclusive_functions(account: &signer) acquires ItemBox {
+    let account_address = signer::address_of(account);
+
+    publish_item_box<Sword>(account);
+    add_sword(account, 10, 15, false);
+    add_sword(account, 10, 10, false);
+    add_sword(account, 50, 2500, true);
+    assert!(table::length<u64, Item<Sword>>(&borrow_global_mut<ItemBox<Sword>>(account_address).items) == 3, 0);
+
+    publish_item_box<Portion>(account);
+    add_portion(account, 25, 1000);
+    add_portion(account, 25, 1000);
+    add_portion(account, 25, 1000);
+    add_portion(account, 25, 1000);
+    add_portion(account, 25, 1000);
+    assert!(table::length<u64, Item<Portion>>(&borrow_global_mut<ItemBox<Portion>>(account_address).items) == 5, 0);
   }
 }
