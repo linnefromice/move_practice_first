@@ -1,13 +1,32 @@
 #[test_only]
 module gov_first::test_two_mod {
   use std::signer;
+  use std::string;
   use aptos_framework::table::{Self, Table};
 
-  struct Sword has store {}
-  struct Spear has store {}
-  struct Wand has store {}
-  struct Gun has store {}
-  struct Portion has store {}
+  struct Sword has store {
+    attack: u64,
+    both_hands: bool,
+  }
+  struct Spear has store {
+    attack: u64,
+    length: u64,
+  }
+  struct Wand has store {
+    magic_power: u64,
+    is_white: bool,
+    is_black: bool,
+  }
+  struct Gun has store {
+    power: u64,
+    range: u64,
+    capacity: u64,
+    shooting_rate: u64,
+    kind: string::String,
+  }
+  struct Portion has store {
+    value: u64
+  }
 
   struct Item<Kind> has store {
     kind: Kind,
@@ -49,12 +68,12 @@ module gov_first::test_two_mod {
     publish_item_box<Sword>(account);
     publish_item_box<Spear>(account);
     publish_item_box<Wand>(account);
-    publish_item_box<Gun>(account);
+    // publish_item_box<Gun>(account);
     publish_item_box<Portion>(account);
-    add_item<Sword>(account, Item<Sword> { kind: Sword {}, level: 50, getted_at: 0 });
-    add_item<Spear>(account, Item<Spear> { kind: Spear {}, level: 50, getted_at: 0 });
-    add_item<Wand>(account, Item<Wand> { kind: Wand {}, level: 50, getted_at: 0 });
-    add_item<Gun>(account, Item<Gun> { kind: Gun {}, level: 50, getted_at: 0 });
-    add_item<Portion>(account, Item<Portion> { kind: Portion {}, level: 50, getted_at: 0 });
+    add_item<Sword>(account, Item<Sword> { kind: Sword { attack: 100, both_hands: false }, level: 50, getted_at: 0 });
+    add_item<Spear>(account, Item<Spear> { kind: Spear { attack: 50, length: 50 }, level: 50, getted_at: 0 });
+    add_item<Wand>(account, Item<Wand> { kind: Wand { magic_power: 200, is_white: true, is_black: true }, level: 50, getted_at: 0 });
+    // add_item<Gun>(account, Item<Gun> { kind: Gun {}, level: 50, getted_at: 0 });
+    add_item<Portion>(account, Item<Portion> { kind: Portion { value: 300 }, level: 50, getted_at: 0 });
   }
 }
