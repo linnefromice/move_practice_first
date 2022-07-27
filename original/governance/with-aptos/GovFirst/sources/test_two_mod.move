@@ -53,6 +53,27 @@ module gov_first::test_two_mod {
     let length = table::length<u64, Item<Kind>>(&box.items);
     table::add<u64, Item<Kind>>(&mut box.items, length + 1, item);
   }
+  fun get_item<Kind: store>(item: &Item<Kind>): (&Kind, u64, u64) {
+    (&item.kind, item.level, item.getted_at)
+  }
+  // fun find_item<Kind: copy + store>(account_address: address, key: u64): (&Kind, u64, u64) acquires ItemBox {
+  //   assert!(exists<ItemBox<Kind>>(account_address), 0);
+  //   let box = borrow_global<ItemBox<Kind>>(account_address);
+  //   let item = table::borrow<u64, Item<Kind>>(&box.items, key);
+  //   get_item<Kind>(item)
+  // } // <- NG
+  // fun find_item<Kind: copy + store>(account_address: address, key: u64): (Kind, u64, u64) acquires ItemBox {
+  //   assert!(exists<ItemBox<Kind>>(account_address), 0);
+  //   let box = borrow_global<ItemBox<Kind>>(account_address);
+  //   let item = table::borrow<u64, Item<Kind>>(&box.items, key);
+  //   (item.kind, item.level, item.getted_at)
+  // } // <- OK
+  // fun find_item<Kind: store>(account_address: address, key: u64): &Item<Kind> acquires ItemBox {
+  //   assert!(exists<ItemBox<Kind>>(account_address), 0);
+  //   let box = borrow_global<ItemBox<Kind>>(account_address);
+  //   let item = table::borrow<u64, Item<Kind>>(&box.items, key);
+  //   item
+  // } // <- NG
 
   // For Sword
   fun add_sword(account: &signer, level: u64, attack: u64, both_hands: bool) acquires ItemBox {
