@@ -8,9 +8,10 @@ module gov_first::ballot_box_mod {
     value: u64
   }
 
-  struct BallotBox has key, store {
+  struct BallotBox<VotingMethod> has key, store {
     uid: u64,
     proposal: Proposal,
+    method: VotingMethod,
     expiration_secs: u64,
     created_at: u64,
   }
@@ -23,7 +24,7 @@ module gov_first::ballot_box_mod {
     move_to(owner, IdCounter { value: 0 });
   }
 
-  public fun create_ballot_box(proposal: Proposal, expiration_secs: u64): BallotBox acquires IdCounter {
+  public fun create_ballot_box<VotingMethod>(proposal: Proposal, method: VotingMethod, expiration_secs: u64): BallotBox<VotingMethod> acquires IdCounter {
     let module_owner = config_mod::module_owner();
     assert!(exists<IdCounter>(module_owner), E_NOT_INITIALIZED);
     // uid
@@ -34,13 +35,14 @@ module gov_first::ballot_box_mod {
     BallotBox {
       uid: id_counter.value,
       proposal,
+      method,
       expiration_secs,
       created_at: current_seconds,
     }
   }
 
   // Getter
-  public fun uid(obj: &BallotBox): u64 {
+  public fun uid<VotingMethod>(obj: &BallotBox<VotingMethod>): u64 {
     obj.uid
   }
 
@@ -48,6 +50,8 @@ module gov_first::ballot_box_mod {
   use std::string;
   #[test_only]
   use gov_first::proposal_mod;
+  #[test_only]
+  struct TestVotingMethod has store {}
   #[test(owner = @gov_first)]
   fun test_initialize(owner: &signer) acquires IdCounter {
     initialize(owner);
@@ -73,7 +77,7 @@ module gov_first::ballot_box_mod {
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
     );
-    let ballot_box = create_ballot_box(proposal, day);
+    let ballot_box = create_ballot_box(proposal, TestVotingMethod {}, day);
     assert!(ballot_box.uid == 1, 0);
     assert!(ballot_box.expiration_secs == 1 * day, 0);
     assert!(ballot_box.created_at == 7 * day * per_microseconds, 0);
@@ -90,7 +94,7 @@ module gov_first::ballot_box_mod {
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
     );
-    let ballot_box = create_ballot_box(proposal, 100); // fail here
+    let ballot_box = create_ballot_box(proposal, TestVotingMethod {}, 100); // fail here
     move_to(account, ballot_box);
   }
 }

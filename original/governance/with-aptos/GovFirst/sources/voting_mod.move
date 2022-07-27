@@ -17,24 +17,25 @@ module gov_first::voting_mod {
     proposer: address
   }
 
-  struct VotingForum has key {
-    ballot_boxes: Table<BallotBoxKey, BallotBox>,
+  struct VotingForum<VotingMethod> has key {
+    ballot_boxes: Table<BallotBoxKey, BallotBox<VotingMethod>>,
     propose_events: EventHandle<ProposeEvent>,
   }
 
-  public fun initialize(owner: &signer) {
+  public fun initialize<VotingMethod: store>(owner: &signer) {
     let owner_address = signer::address_of(owner);
     config_mod::is_module_owner(owner_address);
-    move_to(owner, VotingForum {
+    move_to(owner, VotingForum<VotingMethod> {
       ballot_boxes: table::new(),
       propose_events: event::new_event_handle<ProposeEvent>(owner)
     })
   }
 
-  public fun propose(
+  public fun propose<VotingMethod: store>(
     proposer: &signer,
     title: string::String,
     content: string::String,
+    voting_schema: VotingMethod,
     expiration_secs: u64
   ): BallotBoxKey acquires VotingForum {
     let proposal = proposal_mod::create_proposal(
@@ -42,8 +43,8 @@ module gov_first::voting_mod {
       title,
       content
     );
-    let ballot_box = ballot_box_mod::create_ballot_box(proposal, expiration_secs);
-    let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
+    let ballot_box = ballot_box_mod::create_ballot_box<VotingMethod>(proposal, voting_schema, expiration_secs);
+    let voting_forum = borrow_global_mut<VotingForum<VotingMethod>>(config_mod::module_owner());
     let key = BallotBoxKey {
       uid: ballot_box_mod::uid(&ballot_box),
       proposer: signer::address_of(proposer),
@@ -59,31 +60,39 @@ module gov_first::voting_mod {
     key
   }
 
-  public fun exists_proposal(uid: u64, proposer: address): bool acquires VotingForum {
+  public fun exists_proposal<VotingMethod: store>(uid: u64, proposer: address): bool acquires VotingForum {
     let key = BallotBoxKey { uid, proposer };
-    let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
-    table::contains<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes, key)
+    let voting_forum = borrow_global<VotingForum<VotingMethod>>(config_mod::module_owner());
+    table::contains<BallotBoxKey, BallotBox<VotingMethod>>(&voting_forum.ballot_boxes, key)
   }
+
+  // public fun find_ballet_box<VotingMethod: store>(uid: u64, proposer: address): &VotingMethod acquires VotingForum {
+  //   let voting_forum = borrow_global<VotingForum<VotingMethod>>(config_mod::module_owner());
+  //   let key = BallotBoxKey { uid, proposer };
+  //   let ballot_box = table::borrow(&voting_forum.ballot_boxes, key);
+  // }
 
   #[test_only]
   use std::timestamp;
   #[test_only]
+  struct TestVotingMethod has store {}
+  #[test_only]
   fun initialize_for_test(framework: &signer, owner: &signer) {
     timestamp::set_time_has_started_for_testing(framework);
     ballot_box_mod::initialize(owner);
-    initialize(owner);
+    initialize<TestVotingMethod>(owner);
   }
 
   #[test(owner = @gov_first)]
   fun test_initialize(owner: &signer) {
-    initialize(owner);
+    initialize<TestVotingMethod>(owner);
     let owner_address = signer::address_of(owner);
-    assert!(exists<VotingForum>(owner_address), 0);
+    assert!(exists<VotingForum<TestVotingMethod>>(owner_address), 0);
   }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
   fun test_initialize_with_not_module_owner(account: &signer) {
-    initialize(account);
+    initialize<TestVotingMethod>(account);
   }
 
   #[test(framework = @AptosFramework, owner = @gov_first, account = @0x1)]
@@ -96,12 +105,13 @@ module gov_first::voting_mod {
       account,
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
+      TestVotingMethod {},
       1 * day * per_microseconds
     );
     let owner_address = signer::address_of(owner);
-    let voting_forum = borrow_global<VotingForum>(owner_address);
-    assert!(table::length<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes) == 1, 0);
-    let ballot_box = table::borrow<BallotBoxKey, BallotBox>(&voting_forum.ballot_boxes, key);
+    let voting_forum = borrow_global<VotingForum<TestVotingMethod>>(owner_address);
+    assert!(table::length<BallotBoxKey, BallotBox<TestVotingMethod>>(&voting_forum.ballot_boxes) == 1, 0);
+    let ballot_box = table::borrow<BallotBoxKey, BallotBox<TestVotingMethod>>(&voting_forum.ballot_boxes, key);
     assert!(ballot_box_mod::uid(ballot_box) == 1, 0);
     assert!(event::get_event_handle_counter<ProposeEvent>(&voting_forum.propose_events) == 1, 0);
   }
@@ -113,16 +123,17 @@ module gov_first::voting_mod {
       account,
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
+      TestVotingMethod {},
       0
     );
-    assert!(exists_proposal(key.uid, key.proposer), 0);
+    assert!(exists_proposal<TestVotingMethod>(key.uid, key.proposer), 0);
     let account_address = signer::address_of(account);
-    assert!(!exists_proposal(0, account_address), 0);
+    assert!(!exists_proposal<TestVotingMethod>(0, account_address), 0);
   }
   #[test(framework = @AptosFramework, owner = @gov_first, account = @0x1)]
   fun test_exist_proposal_without_propose(framework: &signer, owner: &signer, account: &signer) acquires VotingForum {
     initialize_for_test(framework, owner);
     let account_address = signer::address_of(account);
-    assert!(!exists_proposal(0, account_address), 0);
+    assert!(!exists_proposal<TestVotingMethod>(0, account_address), 0);
   }
 }
