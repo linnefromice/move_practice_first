@@ -63,6 +63,12 @@ module gov_first::test_two_mod {
     };
     add_item<Sword>(account, item);
   }
+  fun find_sword(account_address: address, key: u64): (u64, u64, bool) acquires ItemBox {
+    assert!(exists<ItemBox<Sword>>(account_address), 0);
+    let box = borrow_global<ItemBox<Sword>>(account_address);
+    let item = table::borrow<u64, Item<Sword>>(&box.items, key);
+    (item.level, item.kind.attack, item.kind.both_hands)
+  }
 
   // For Portion
   fun add_portion(account: &signer, level: u64, value: u64) acquires ItemBox {
@@ -130,5 +136,18 @@ module gov_first::test_two_mod {
     add_portion(account, 25, 1000);
     add_portion(account, 25, 1000);
     assert!(table::length<u64, Item<Portion>>(&borrow_global_mut<ItemBox<Portion>>(account_address).items) == 5, 0);
+  }
+  #[test(account = @0x1)]
+  fun test_find_sword(account: &signer) acquires ItemBox {
+    let account_address = signer::address_of(account);
+
+    publish_item_box<Sword>(account);
+    add_sword(account, 10, 15, false);
+    add_sword(account, 10, 10, false);
+    add_sword(account, 50, 2500, true);
+    let (level, attack, both_hands) = find_sword(account_address, 2);
+    assert!(level == 10, 0);
+    assert!(attack == 10, 0);
+    assert!(both_hands == false, 0);
   }
 }
