@@ -40,6 +40,8 @@ module gov_first::test_two_mod {
 
   // For General
   fun publish_item_box<Kind: store>(account: &signer) {
+    let account_address = signer::address_of(account);
+    assert!(!exists<ItemBox<Kind>>(account_address), 0);
     move_to(account, ItemBox<Kind> {
       items: table::new()
     })
@@ -83,6 +85,12 @@ module gov_first::test_two_mod {
     assert!(!exists<ItemBox<Wand>>(account_address), 0);
     assert!(!exists<ItemBox<Gun>>(account_address), 0);
     assert!(exists<ItemBox<Portion>>(account_address), 0);
+  }
+  #[test(account = @0x1)]
+  #[expected_failure(abort_code = 0)]
+  fun test_publish_item_box_twice(account: &signer) {
+    publish_item_box<Sword>(account);
+    publish_item_box<Sword>(account);
   }
   #[test(account = @0x1)]
   fun test_add_item(account: &signer) acquires ItemBox {
