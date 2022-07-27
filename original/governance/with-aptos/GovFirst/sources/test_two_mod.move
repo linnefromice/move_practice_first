@@ -25,6 +25,14 @@ module gov_first::test_two_mod {
     })
   }
 
+  fun add_item<Kind: store>(account: &signer, item: Item<Kind>) acquires ItemBox {
+    let account_address = signer::address_of(account);
+    assert!(exists<ItemBox<Kind>>(account_address), 0);
+    let box = borrow_global_mut<ItemBox<Kind>>(account_address);
+    let length = table::length<u64, Item<Kind>>(&box.items);
+    table::add<u64, Item<Kind>>(&mut box.items, length + 1, item);
+  }
+
   #[test(account = @0x1)]
   fun test_publish_item_box(account: &signer) {
     publish_item_box<Sword>(account);
@@ -35,5 +43,18 @@ module gov_first::test_two_mod {
     assert!(!exists<ItemBox<Wand>>(account_address), 0);
     assert!(!exists<ItemBox<Gun>>(account_address), 0);
     assert!(exists<ItemBox<Portion>>(account_address), 0);
+  }
+  #[test(account = @0x1)]
+  fun test_add_item(account: &signer) acquires ItemBox {
+    publish_item_box<Sword>(account);
+    publish_item_box<Spear>(account);
+    publish_item_box<Wand>(account);
+    publish_item_box<Gun>(account);
+    publish_item_box<Portion>(account);
+    add_item<Sword>(account, Item<Sword> { kind: Sword {}, level: 50, getted_at: 0 });
+    add_item<Spear>(account, Item<Spear> { kind: Spear {}, level: 50, getted_at: 0 });
+    add_item<Wand>(account, Item<Wand> { kind: Wand {}, level: 50, getted_at: 0 });
+    add_item<Gun>(account, Item<Gun> { kind: Gun {}, level: 50, getted_at: 0 });
+    add_item<Portion>(account, Item<Portion> { kind: Portion {}, level: 50, getted_at: 0 });
   }
 }
