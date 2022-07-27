@@ -66,6 +66,12 @@ module gov_first::voting_mod {
     table::contains<BallotBoxKey, BallotBox<VotingMethod>>(&voting_forum.ballot_boxes, key)
   }
 
+  // public fun find_ballet_box<VotingMethod: store>(uid: u64, proposer: address): &VotingMethod acquires VotingForum {
+  //   let voting_forum = borrow_global<VotingForum<VotingMethod>>(config_mod::module_owner());
+  //   let key = BallotBoxKey { uid, proposer };
+  //   let ballot_box = table::borrow(&voting_forum.ballot_boxes, key);
+  // }
+
   #[test_only]
   use std::timestamp;
   #[test_only]
