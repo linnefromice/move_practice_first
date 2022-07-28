@@ -99,6 +99,40 @@ module gov_second::voting_power_mod {
     publish(account);
   }
 
+  #[test_only]
+  fun increase_voting_power(account_address: address, value: u64) acquires VotingPower, VotingPowerManager {
+    let vp = borrow_global_mut<VotingPower>(account_address);
+    vp.value = vp.value + value;
+
+    let vp_manager = borrow_global_mut<VotingPowerManager>(config_mod::module_owner());
+    vp_manager.total_power = vp_manager.total_power + value;
+  }
+  #[test(owner = @gov_second, account = @0x1)]
+  fun test_use_voting_power(owner: &signer, account: &signer) acquires VotingPowerManager, VotingPower {
+    // prepare
+    initialize(owner);
+    publish(account);
+    //// for test
+    let account_address = signer::address_of(account);
+    let owner_address = config_mod::module_owner();
+    increase_voting_power(account_address, 100);
+    assert!(borrow_global<VotingPower>(account_address).value == 100, 0);
+    assert!(borrow_global<VotingPowerManager>(owner_address).total_power == 100, 0);
+
+    let consumed = use_voting_power(account, 25);
+    assert!(consumed == 25, 0);
+    assert!(borrow_global<VotingPower>(account_address).value == 75, 0);
+    let vp_manager = borrow_global<VotingPowerManager>(owner_address);
+    assert!(vp_manager.total_power == 100, 0);
+    assert!(vp_manager.total_used_power == 25, 0);
+
+    let consumed = use_voting_power(account, 65);
+    assert!(consumed == 65, 0);
+    assert!(borrow_global<VotingPower>(account_address).value == 10, 0);
+    let vp_manager = borrow_global<VotingPowerManager>(owner_address);
+    assert!(vp_manager.total_power == 100, 0);
+    assert!(vp_manager.total_used_power == 90, 0);
+  }
   #[test(account = @0x1)]
   #[expected_failure(abort_code = 1)]
   fun test_use_voting_power_before_initialize(account: &signer) acquires VotingPowerManager, VotingPower {
