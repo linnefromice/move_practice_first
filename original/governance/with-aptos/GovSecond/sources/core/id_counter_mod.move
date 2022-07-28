@@ -15,6 +15,14 @@ module gov_second::id_counter_mod {
     move_to(owner, IdCounter<For>{ value: 0 });
   }
 
+  public fun generate_id<For>(): u64 acquires IdCounter {
+    let owner_address = config_mod::module_owner();
+    assert!(exists<IdCounter<For>>(owner_address), E_ALREADY_HAVE);
+    let id_counter = borrow_global_mut<IdCounter<For>>(owner_address);
+    id_counter.value = id_counter.value + 1;
+    id_counter.value
+  }
+
   #[test_only]
   struct Test1VotingMethod {}
   #[test_only]
@@ -44,5 +52,33 @@ module gov_second::id_counter_mod {
   fun test_publish_id_counter_with_several_times(account: &signer) {
     publish_id_counter<Test1VotingMethod>(account);
     publish_id_counter<Test1VotingMethod>(account);
+  }
+
+  #[test(account = @gov_second)]
+  fun test_generate_id(account: &signer) acquires IdCounter {
+    publish_id_counter<Test1VotingMethod>(account);
+    publish_id_counter<Test2VotingMethod>(account);
+
+    let account_address = signer::address_of(account);
+
+    let id = generate_id<Test1VotingMethod>();
+    assert!(id == 1, 0);
+    assert!(borrow_global<IdCounter<Test1VotingMethod>>(account_address).value == 1, 0);
+    assert!(borrow_global<IdCounter<Test2VotingMethod>>(account_address).value == 0, 0);
+
+    let id = generate_id<Test1VotingMethod>();
+    assert!(id == 2, 0);
+    assert!(borrow_global<IdCounter<Test1VotingMethod>>(account_address).value == 2, 0);
+    assert!(borrow_global<IdCounter<Test2VotingMethod>>(account_address).value == 0, 0);
+
+    let id = generate_id<Test2VotingMethod>();
+    assert!(id == 1, 0);
+    assert!(borrow_global<IdCounter<Test1VotingMethod>>(account_address).value == 2, 0);
+    assert!(borrow_global<IdCounter<Test2VotingMethod>>(account_address).value == 1, 0);
+  }
+  #[test]
+  #[expected_failure(abort_code = 1)]
+  fun test_generate_id_without_id_counter() acquires IdCounter {
+    generate_id<Test1VotingMethod>();
   }
 }
