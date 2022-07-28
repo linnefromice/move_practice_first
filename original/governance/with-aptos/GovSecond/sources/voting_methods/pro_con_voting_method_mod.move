@@ -5,6 +5,7 @@ module gov_second::pro_con_voting_method_mod {
   use gov_second::config_mod;
   use gov_second::id_counter_mod;
   use gov_second::proposal_meta_mod;
+  use gov_second::voting_power_mod;
 
   struct VotingForum has key {
     proposals: Table<u64, Proposal>
@@ -74,14 +75,14 @@ module gov_second::pro_con_voting_method_mod {
   public fun vote_to_no(account: &signer, id: u64, count: u64) acquires VotingForum {
     vote_internal(account, id, count, false);
   }
-  fun vote_internal(_account: &signer, id: u64, count: u64, is_yes: bool) acquires VotingForum {
+  fun vote_internal(account: &signer, id: u64, count: u64, is_yes: bool) acquires VotingForum {
     let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
     let proposal = table::borrow_mut(&mut voting_forum.proposals, id);
-    // TODO: use voting power
+    let consumed_voting_power = voting_power_mod::use_voting_power(account, count);
     if (is_yes) {
-      proposal.yes_votes = proposal.yes_votes + count;
+      proposal.yes_votes = proposal.yes_votes + consumed_voting_power;
     } else {
-      proposal.no_votes = proposal.no_votes + count;
+      proposal.no_votes = proposal.no_votes + consumed_voting_power;
     }
   }
 
