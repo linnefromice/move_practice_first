@@ -28,6 +28,24 @@ module gov_second::proposal_meta_mod {
     }
   }
 
+  public fun info(obj: &ProposalMeta): (
+    string::String,
+    string::String,
+    address,
+    u64,
+    u64,
+    u64
+  ) {
+    (
+      obj.title,
+      obj.content,
+      obj.proposer,
+      obj.expiration_secs,
+      obj.created_at,
+      obj.updated_at
+    )
+  }
+
   #[test_only]
   use std::signer;
   #[test_only]

@@ -30,7 +30,7 @@ module gov_second::pro_con_voting_method_mod {
     title: string::String,
     content: string::String,
     expiration_secs: u64
-  ) acquires VotingForum {
+  ): u64 acquires VotingForum {
     let account_address = signer::address_of(account);
     let current = 0; // TODO: use timestamp
     let meta = proposal_meta_mod::create_proposal_meta(
@@ -49,6 +49,40 @@ module gov_second::pro_con_voting_method_mod {
     };
     let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
     table::add(&mut voting_forum.proposals, id, proposal);
+    id
+  }
+
+  public fun get_proposal_info(id: u64): (
+    string::String,
+    string::String,
+    address,
+    u64,
+    u64,
+    u64,
+    u64,
+    u64
+  ) acquires VotingForum {
+    let voting_forum = borrow_global<VotingForum>(config_mod::module_owner());
+    let proposal = table::borrow(&voting_forum.proposals, id);
+    let (title, content, proposer, expiration_secs, created_at, updated_at) = proposal_meta_mod::info(&proposal.meta);
+    (title, content, proposer, expiration_secs, created_at, updated_at, proposal.yes_votes, proposal.no_votes)
+  }
+
+  public fun vote_to_yes(account: &signer, id: u64, count: u64) acquires VotingForum {
+    vote_internal(account, id, count, true);
+  }
+  public fun vote_to_no(account: &signer, id: u64, count: u64) acquires VotingForum {
+    vote_internal(account, id, count, false);
+  }
+  fun vote_internal(_account: &signer, id: u64, count: u64, is_yes: bool) acquires VotingForum {
+    let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
+    let proposal = table::borrow_mut(&mut voting_forum.proposals, id);
+    // TODO: use voting power
+    if (is_yes) {
+      proposal.yes_votes = proposal.yes_votes + count;
+    } else {
+      proposal.no_votes = proposal.no_votes + count;
+    }
   }
 
   #[test(owner = @gov_second)]
@@ -73,11 +107,47 @@ module gov_second::pro_con_voting_method_mod {
   fun test_add_proposal(owner: &signer, account: &signer) acquires VotingForum {
     initialize(owner);
     id_counter_mod::publish_id_counter<VotingForum>(owner);
-    add_proposal(
+    let id = add_proposal(
       account,
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
       0,
     );
+    let (title, content, proposer, expiration_secs, created_at, updated_at, yes_votes, no_votes) = get_proposal_info(id);
+    assert!(title == string::utf8(b"proposal_title"), 0);
+    assert!(content == string::utf8(b"proposal_content"), 0);
+    assert!(proposer == signer::address_of(account), 0);
+    assert!(expiration_secs == 0, 0);
+    assert!(created_at == 0, 0);
+    assert!(updated_at == 0, 0);
+    assert!(yes_votes == 0, 0);
+    assert!(no_votes == 0, 0);
+  }
+
+  #[test(owner = @gov_second, account = @0x1)]
+  fun test_vote(owner: &signer, account: &signer) acquires VotingForum {
+    initialize(owner);
+    id_counter_mod::publish_id_counter<VotingForum>(owner);
+    let id = add_proposal(
+      account,
+      string::utf8(b"proposal_title"),
+      string::utf8(b"proposal_content"),
+      0,
+    );
+
+    vote_to_yes(account, id, 10);
+    let (_, _, _, _, _, _, yes_votes, no_votes) = get_proposal_info(id);
+    assert!(yes_votes == 10, 0);
+    assert!(no_votes == 0, 0);
+    vote_to_yes(account, id, 15);
+
+    let (_, _, _, _, _, _, yes_votes, no_votes) = get_proposal_info(id);
+    assert!(yes_votes == 25, 0);
+    assert!(no_votes == 0, 0);
+
+    vote_to_no(account, id, 100);
+    let (_, _, _, _, _, _, yes_votes, no_votes) = get_proposal_info(id);
+    assert!(yes_votes == 25, 0);
+    assert!(no_votes == 100, 0);
   }
 }
