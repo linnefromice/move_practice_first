@@ -145,6 +145,10 @@ module gov_second::offer_voting_method_mod {
       0,
     );
 
+    voting_power_mod::initialize(owner);
+    voting_power_mod::publish(account);
+    voting_power_mod::increase_voting_power(signer::address_of(account), 2775);
+
     vote_to_up(account, id, 10);
     vote_to_up(account, id, 15);
     let (_, _, _, _, _, _, up_votes, stay_votes, down_votes) = get_proposal_info(id);

@@ -136,6 +136,10 @@ module gov_second::pro_con_voting_method_mod {
       0,
     );
 
+    voting_power_mod::initialize(owner);
+    voting_power_mod::publish(account);
+    voting_power_mod::increase_voting_power(signer::address_of(account), 125);
+
     vote_to_yes(account, id, 10);
     let (_, _, _, _, _, _, yes_votes, no_votes) = get_proposal_info(id);
     assert!(yes_votes == 10, 0);

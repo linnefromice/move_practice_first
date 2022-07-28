@@ -100,7 +100,7 @@ module gov_second::voting_power_mod {
   }
 
   #[test_only]
-  fun increase_voting_power(account_address: address, value: u64) acquires VotingPower, VotingPowerManager {
+  public fun increase_voting_power(account_address: address, value: u64) acquires VotingPower, VotingPowerManager {
     let vp = borrow_global_mut<VotingPower>(account_address);
     vp.value = vp.value + value;
 
