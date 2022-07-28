@@ -75,10 +75,10 @@ module gov_second::offer_voting_method_mod {
     vote_internal(account, id, count, true, false);
   }
   public fun vote_to_stay(account: &signer, id: u64, count: u64) acquires VotingForum {
-    vote_internal(account, id, count, false, true);
+    vote_internal(account, id, count, false, false);
   }
   public fun vote_to_down(account: &signer, id: u64, count: u64) acquires VotingForum {
-    vote_internal(account, id, count, false, false);
+    vote_internal(account, id, count, false, true);
   }
   fun vote_internal(_account: &signer, id: u64, count: u64, is_up: bool, is_down: bool) acquires VotingForum {
     let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
@@ -154,15 +154,15 @@ module gov_second::offer_voting_method_mod {
     vote_to_stay(account, id, 100);
     vote_to_stay(account, id, 150);
     let (_, _, _, _, _, _, up_votes, stay_votes, down_votes) = get_proposal_info(id);
-    assert!(up_votes == 0, 0);
+    assert!(up_votes == 25, 0);
     assert!(stay_votes == 250, 0);
     assert!(down_votes == 0, 0);
 
     vote_to_down(account, id, 1000);
     vote_to_down(account, id, 1500);
     let (_, _, _, _, _, _, up_votes, stay_votes, down_votes) = get_proposal_info(id);
-    assert!(up_votes == 0, 0);
-    assert!(stay_votes == 0, 0);
+    assert!(up_votes == 25, 0);
+    assert!(stay_votes == 250, 0);
     assert!(down_votes == 2500, 0);
   }
 }
