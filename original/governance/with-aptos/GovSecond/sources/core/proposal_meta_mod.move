@@ -43,6 +43,7 @@ module gov_second::proposal_meta_mod {
       0,
       0,
     );
+
     move_to(account, TestContainer { meta: proposal_meta } );
   }
 }
