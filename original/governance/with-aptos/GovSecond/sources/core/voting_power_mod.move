@@ -15,7 +15,8 @@ module gov_second::voting_power_mod {
   const E_NOT_INITIALIZED: u64 = 1;
   const E_ALREADY_HAVE: u64 = 2;
   const E_NOT_HAVE: u64 = 3;
-  const E_INSUFFICIENT_VOTING_POWER: u64 = 4;
+  const E_INVALID_VALUE: u64 = 4;
+  const E_INSUFFICIENT_VOTING_POWER: u64 = 5;
 
   public fun initialize(owner: &signer) {
     let owner_address = signer::address_of(owner);
@@ -38,6 +39,21 @@ module gov_second::voting_power_mod {
     vp_manager.unique_holder_count = vp_manager.unique_holder_count + 1;
 
     move_to(account, VotingPower { value: 0 });
+  }
+
+  public fun use_voting_power(account: &signer, amount: u64): u64 acquires VotingPowerManager, VotingPower {
+    assert!(amount > 0, E_INVALID_VALUE);
+    let owner_address = config_mod::module_owner();
+    let account_address = signer::address_of(account);
+    assert!(exists<VotingPowerManager>(owner_address), E_NOT_INITIALIZED);
+    assert!(exists<VotingPower>(account_address), E_NOT_HAVE);
+
+    let vp_manager = borrow_global_mut<VotingPowerManager>(owner_address);
+    let vp = borrow_global_mut<VotingPower>(account_address);
+    assert!(vp.value >= amount, E_INSUFFICIENT_VOTING_POWER);
+    vp.value = vp.value - amount;
+    vp_manager.total_used_power = vp_manager.total_used_power + amount;
+    amount
   }
 
   #[test(owner = @gov_second)]
@@ -81,5 +97,31 @@ module gov_second::voting_power_mod {
     initialize(owner);
     publish(account);
     publish(account);
+  }
+
+  #[test(account = @0x1)]
+  #[expected_failure(abort_code = 1)]
+  fun test_use_voting_power_before_initialize(account: &signer) acquires VotingPowerManager, VotingPower {
+    use_voting_power(account, 1);
+  }
+  #[test(owner = @gov_second, account = @0x1)]
+  #[expected_failure(abort_code = 3)]
+  fun test_use_voting_power_before_publish(owner: &signer, account: &signer) acquires VotingPowerManager, VotingPower {
+    initialize(owner);
+    use_voting_power(account, 1);
+  }
+  #[test(owner = @gov_second, account = @0x1)]
+  #[expected_failure(abort_code = 4)]
+  fun test_use_voting_power_with_zero(owner: &signer, account: &signer) acquires VotingPowerManager, VotingPower {
+    initialize(owner);
+    publish(account);
+    use_voting_power(account, 0);
+  }
+  #[test(owner = @gov_second, account = @0x1)]
+  #[expected_failure(abort_code = 5)]
+  fun test_use_voting_power_with_no_power(owner: &signer, account: &signer) acquires VotingPowerManager, VotingPower {
+    initialize(owner);
+    publish(account);
+    use_voting_power(account, 1);
   }
 }
