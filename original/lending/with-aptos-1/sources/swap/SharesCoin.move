@@ -43,6 +43,9 @@ module lending::SharesCoin {
     initialize<DummyCoin>(owner);
 
     assert!(coin::is_coin_initialized<SharesCoin<DummyCoin>>(), 0);
+    assert!(coin::name<SharesCoin<DummyCoin>>() == string::utf8(b"Shares DummyCoin"), 0);
+    assert!(coin::symbol<SharesCoin<DummyCoin>>() == string::utf8(b"sDUMMY"), 0);
+    assert!(coin::decimals<SharesCoin<DummyCoin>>() == 18, 0);
     assert!(exists<Capabilities<SharesCoin<DummyCoin>>>(signer::address_of(owner)), 0);
   }
 }
