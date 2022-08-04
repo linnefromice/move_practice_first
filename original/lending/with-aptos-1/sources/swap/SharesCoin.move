@@ -1,17 +1,48 @@
 module lending::SharesCoin {
+  use std::string;
+  use aptos_framework::coin::{Self, BurnCapability, MintCapability};
+
+  const NAME_PREFIX: vector<u8> = b"Shares ";
+  const SYMBOL_PREFIX: vector<u8> = b"s";
+
   struct SharesCoin<phantom Coin> has key {}
 
+  struct Capabilities<phantom CoinType> has key {
+    mint_cap: MintCapability<CoinType>,
+    burn_cap: BurnCapability<CoinType>,
+  }
+
   public fun initialize<CoinType>(owner: &signer) {
-    move_to(owner, SharesCoin<CoinType> {});
+    assert!(coin::is_coin_initialized<CoinType>(), 0);
+    let raw_name = coin::name<CoinType>();
+    let raw_symbol = coin::symbol<CoinType>();
+    let name = string::utf8(NAME_PREFIX);
+    string::append(&mut name, raw_name);
+    let symbol = string::utf8(SYMBOL_PREFIX);
+    string::append(&mut symbol, raw_symbol);
+    let (mint_cap, burn_cap) = coin::initialize<SharesCoin<CoinType>>(
+      owner,
+      name,
+      symbol,
+      18, // TODO
+      false
+    );
+    move_to(owner, Capabilities<SharesCoin<CoinType>> {
+      mint_cap,
+      burn_cap
+    });
   }
 
   #[test_only]
   use std::signer;
   #[test_only]
-  struct DummyCoin {}
-  #[test(owner = @lending)]
-  fun test_initialize(owner: &signer) {
+  use test_addr::test_mod::{Self, DummyCoin};
+  #[test(owner = @lending, test_owner = @test_addr)]
+  fun test_initialize(owner: &signer, test_owner: &signer) {
+    test_mod::initialize_coin_for_test(test_owner);
     initialize<DummyCoin>(owner);
-    assert!(exists<SharesCoin<DummyCoin>>(signer::address_of(owner)), 0);
+
+    assert!(coin::is_coin_initialized<SharesCoin<DummyCoin>>(), 0);
+    assert!(exists<Capabilities<SharesCoin<DummyCoin>>>(signer::address_of(owner)), 0);
   }
 }
