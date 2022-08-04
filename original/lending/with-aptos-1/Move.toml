@@ -7,4 +7,5 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
 
 [addresses]
 lending = "0xFFFF"
+test_addr = "0x123456789123456789"
 
