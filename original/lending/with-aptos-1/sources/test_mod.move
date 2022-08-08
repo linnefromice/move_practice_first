@@ -18,7 +18,7 @@ module test_addr::test_mod {
       10,
       false
     );
-    coin::register_internal<DummyCoin>(owner);
+    coin::register_for_test<DummyCoin>(owner);
     move_to(owner, FakeCapabilities<DummyCoin>{
       mint_cap,
       burn_cap

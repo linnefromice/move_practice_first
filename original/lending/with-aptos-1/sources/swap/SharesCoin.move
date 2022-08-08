@@ -33,6 +33,11 @@ module lending::SharesCoin {
     });
   }
 
+  public fun register<CoinType>(account: &signer) {
+    assert!(coin::is_coin_initialized<SharesCoin<CoinType>>(), 0);
+    coin::register_for_test<SharesCoin<CoinType>>(account);
+  }
+
   #[test_only]
   use std::signer;
   #[test_only]
