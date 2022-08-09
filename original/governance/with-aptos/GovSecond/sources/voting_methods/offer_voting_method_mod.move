@@ -20,6 +20,7 @@ module gov_second::offer_voting_method_mod {
   }
 
   const E_ALREADY_HAVE: u64 = 1;
+  const E_PROHIBIT_STAY: u64 = 2;
 
   public fun initialize(owner: &signer) {
     let owner_address = signer::address_of(owner);
@@ -93,6 +94,7 @@ module gov_second::offer_voting_method_mod {
     } else if (is_down) {
       proposal.down_votes = proposal.down_votes + consumed_voting_power;
     } else {
+      assert!(proposal.can_use_stay, E_PROHIBIT_STAY);
       proposal.stay_votes = proposal.stay_votes + consumed_voting_power;
     }
   }
