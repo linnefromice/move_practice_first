@@ -16,6 +16,7 @@ module gov_second::offer_voting_method_mod {
     up_votes: u64,
     stay_votes: u64,
     down_votes: u64,
+    can_use_stay: bool,
   }
 
   const E_ALREADY_HAVE: u64 = 1;
@@ -31,7 +32,8 @@ module gov_second::offer_voting_method_mod {
     account: &signer,
     title: string::String,
     content: string::String,
-    expiration_secs: u64
+    expiration_secs: u64,
+    can_use_stay: bool,
   ): u64 acquires VotingForum {
     let account_address = signer::address_of(account);
     let current = 0; // TODO: use timestamp
@@ -48,7 +50,8 @@ module gov_second::offer_voting_method_mod {
       meta,
       up_votes: 0,
       stay_votes: 0,
-      down_votes: 0
+      down_votes: 0,
+      can_use_stay
     };
     let voting_forum = borrow_global_mut<VotingForum>(config_mod::module_owner());
     table::add(&mut voting_forum.proposals, id, proposal);
@@ -121,6 +124,7 @@ module gov_second::offer_voting_method_mod {
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
       0,
+      true
     );
     let (title, content, proposer, expiration_secs, created_at, updated_at, up_votes, stay_votes, down_votes) = get_proposal_info(id);
     assert!(title == string::utf8(b"proposal_title"), 0);
@@ -143,6 +147,7 @@ module gov_second::offer_voting_method_mod {
       string::utf8(b"proposal_title"),
       string::utf8(b"proposal_content"),
       0,
+      true
     );
 
     voting_power_mod::initialize(owner);
