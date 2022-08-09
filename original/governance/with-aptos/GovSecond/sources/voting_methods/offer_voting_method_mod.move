@@ -177,4 +177,31 @@ module gov_second::offer_voting_method_mod {
     assert!(stay_votes == 250, 0);
     assert!(down_votes == 2500, 0);
   }
+
+  #[test(owner = @gov_second, account = @0x1)]
+  #[expected_failure(abort_code = 2)]
+  fun test_vote_with_no_stay_flag(owner: &signer, account: &signer) acquires VotingForum {
+    initialize(owner);
+    id_counter_mod::publish_id_counter<VotingForum>(owner);
+    let id = add_proposal(
+      account,
+      string::utf8(b"proposal_title"),
+      string::utf8(b"proposal_content"),
+      0,
+      false
+    );
+
+    voting_power_mod::initialize(owner);
+    voting_power_mod::publish(account);
+    voting_power_mod::increase_voting_power(signer::address_of(account), 3);
+
+    vote_to_up(account, id, 1);
+    vote_to_down(account, id, 1);
+    let (_, _, _, _, _, _, up_votes, stay_votes, down_votes) = get_proposal_info(id);
+    assert!(up_votes == 1, 0);
+    assert!(stay_votes == 0, 0);
+    assert!(down_votes == 1, 0);
+
+    vote_to_stay(account, id, 1);
+  }
 }
