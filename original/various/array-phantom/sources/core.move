@@ -13,7 +13,7 @@ module array_phantom::core {
     map: SimpleMap<u64, T>,
   }
 
-  public fun initialize<T: store>(owner: &signer) {
+  public fun publish<T: store>(owner: &signer) {
     move_to(owner, VectorWrapper<T>{ vector: vector::empty<T>() });
     move_to(owner, TableWrapper<T>{ table: table::new<u64, T>() });
     move_to(owner, SimpleMapWrapper<T>{ map: simple_map::create<u64, T>() });
@@ -24,8 +24,8 @@ module array_phantom::core {
   #[test_only]
   struct TestCoreCoin has store {}
   #[test(account = @0x1)]
-  fun test_initialize(account: &signer) {
-    initialize<TestCoreCoin>(account);
+  fun test_publish(account: &signer) {
+    publish<TestCoreCoin>(account);
     let account_address = signer::address_of(account);
     assert!(exists<VectorWrapper<TestCoreCoin>>(account_address), 0);
     assert!(exists<TableWrapper<TestCoreCoin>>(account_address), 0);
