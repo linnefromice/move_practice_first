@@ -12,13 +12,13 @@ module array_phantom::test_2 {
     value: u64,
   }
 
-  struct RedCoin has store {
+  struct RedCoin has store, copy, drop {
     red: string::String,
   }
-  struct BlueCoin has store {
+  struct BlueCoin has store, copy, drop {
     blue: string::String,
   }
-  struct GreenCoin has store {
+  struct GreenCoin has store, copy, drop {
     green: string::String,
   }
 
@@ -52,17 +52,18 @@ module array_phantom::test_2 {
     add_coin<GreenCoin>(uid, account_address, coin);
   }
 
-  // public fun bk_find_coin_info<T: store>(account_address: address): (&T, u64) acquires CoinInfo {
-  //   let coin_info = borrow_global<CoinInfo<T>>(account_address);
-  //   let info = &coin_info.info;
-  //   (info, coin_info.balance.value)
+  // public fun bk_find_coin<T: store>(account_address: address, uid: u64): (&T, u64) acquires Balance {
+  //   let balance = borrow_global<Balance<T>>(account_address);
+  //   let coin = table::borrow<u64, Coin<T>>(&balance.coins, uid);
+  //   let info = &coin.info;
+  //   (info, coin.value) // Invalid return. Resource variable 'Balance' is still being borrowed. if info don't have copy ability
   // }
 
-  // public fun find_coin_info<T: store + copy>(account_address: address): (T, u64) acquires CoinInfo {
-  //   let coin_info = borrow_global<CoinInfo<T>>(account_address);
-  //   let info = coin_info.info;
-  //   (info, coin_info.balance.value)
-  // }
+  public fun find_coin<T: store + copy>(account_address: address, uid: u64): (T, u64) acquires Balance {
+    let balance = borrow_global<Balance<T>>(account_address);
+    let coin = table::borrow<u64, Coin<T>>(&balance.coins, uid);
+    (coin.info, coin.value)
+  }
 
   #[test(account = @0x1)]
   fun test_scenario(account: &signer) acquires Balance {
@@ -75,5 +76,15 @@ module array_phantom::test_2 {
     add_red_coin(1, account_address, 100);
     add_blue_coin(2, account_address, 200);
     add_green_coin(3, account_address, 300);
+
+    let (info, value) = find_coin<RedCoin>(account_address, 1);
+    assert!(value == 100, 0);
+    assert!(info.red == string::utf8(b"red coin"), 0);
+    let (info, value) = find_coin<BlueCoin>(account_address, 2);
+    assert!(value == 200, 0);
+    assert!(info.blue == string::utf8(b"blue coin"), 0);
+    let (info, value) = find_coin<GreenCoin>(account_address, 3);
+    assert!(value == 300, 0);
+    assert!(info.green == string::utf8(b"green coin"), 0);
   }
 }
