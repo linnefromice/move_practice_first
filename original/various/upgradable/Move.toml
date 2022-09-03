@@ -1,0 +1,10 @@
+[package]
+name = 'prototype-upgradable'
+version = '1.0.0'
+upgrade_policy = "compatible"
+[dependencies.AptosFramework]
+git = 'https://github.com/aptos-labs/aptos-core.git'
+rev = 'devnet'
+subdir = 'aptos-move/framework/aptos-framework'
+[addresses]
+original = "0x47284d05d210e01563781910aaad83d67177e92542c341d3115041381d96d2b9"
