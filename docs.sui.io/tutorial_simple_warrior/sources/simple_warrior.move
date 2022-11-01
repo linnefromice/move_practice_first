@@ -45,6 +45,22 @@ module tutorial_simple_warrior::simple_warrior {
 		transfer::transfer(obj, tx_context::sender(ctx))
 	}
 
+	public entry fun equip_sword(warrior: &mut SimpleWarrior, sword: Sword, ctx: &mut TxContext) {
+		if (option::is_some(&warrior.sword)) {
+			let old_sword = option::extract(&mut warrior.sword);
+			transfer::transfer(old_sword, tx_context::sender(ctx));
+		};
+		option::fill(&mut warrior.sword, sword);
+	}
+
+	public entry fun equip_shield(warrior: &mut SimpleWarrior, shield: Shield, ctx: &mut TxContext) {
+		if (option::is_some(&warrior.shield)) {
+			let old_shield = option::extract(&mut warrior.shield);
+			transfer::transfer(old_shield, tx_context::sender(ctx));
+		};
+		option::fill(&mut warrior.shield, shield);
+	}
+
 	public fun get_warrior(self: &SimpleWarrior): (bool, u8, bool, u8) {
 		let is_equipped_sword = option::is_some(&self.sword);
 		let is_equipped_shiled = option::is_some(&self.shield);
@@ -104,6 +120,39 @@ module tutorial_simple_warrior::simple_warriorTests {
 			assert!(strength == 0, 0);
 			assert!(!is_equipped_shiled, 0);
 			assert!(armor == 0, 0);
+			test_scenario::return_to_sender(scenario, obj);
+		};
+		test_scenario::end(scenario_val);
+	}
+	#[test]
+	fun test_equip() {
+		let owner = @0x1;
+		let scenario_val = test_scenario::begin(owner);
+		let scenario = &mut scenario_val;
+		{
+			let ctx = test_scenario::ctx(scenario);
+			simple_warrior::create_warrior(ctx);
+			simple_warrior::create_sword(10, ctx);
+			simple_warrior::create_shield(5, ctx);
+		};
+		test_scenario::next_tx(scenario, owner);
+		{
+			let warrior = test_scenario::take_from_address<SimpleWarrior>(scenario, owner);
+			let sword = test_scenario::take_from_address<Sword>(scenario, owner);
+			let shield = test_scenario::take_from_address<Shield>(scenario, owner);
+			let ctx = test_scenario::ctx(scenario);
+			simple_warrior::equip_sword(&mut warrior, sword, ctx);
+			simple_warrior::equip_shield(&mut warrior, shield, ctx);
+			test_scenario::return_to_sender(scenario, warrior);
+		};
+		test_scenario::next_tx(scenario, owner);
+		{
+			let obj = test_scenario::take_from_address<SimpleWarrior>(scenario, owner);
+			let (is_equipped_sword, strength, is_equipped_shield, armor) = simple_warrior::get_warrior(&obj);
+			assert!(is_equipped_sword, 0);
+			assert!(strength == 10, 0);
+			assert!(is_equipped_shield, 0);
+			assert!(armor == 5, 0);
 			test_scenario::return_to_sender(scenario, obj);
 		};
 		test_scenario::end(scenario_val);
