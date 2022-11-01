@@ -63,12 +63,12 @@ module tutorial_simple_warrior::simple_warrior {
 
 	public fun get_warrior(self: &SimpleWarrior): (bool, u8, bool, u8) {
 		let is_equipped_sword = option::is_some(&self.sword);
-		let is_equipped_shiled = option::is_some(&self.shield);
+		let is_equipped_shield = option::is_some(&self.shield);
 		(
 			is_equipped_sword,
 			if (is_equipped_sword) option::borrow(&self.sword).strength else 0,
-			is_equipped_shiled,
-			if (is_equipped_shiled) option::borrow(&self.shield).armor else 0,
+			is_equipped_shield,
+			if (is_equipped_shield) option::borrow(&self.shield).armor else 0,
 		)
 	}
 }
@@ -115,10 +115,10 @@ module tutorial_simple_warrior::simple_warriorTests {
 		test_scenario::next_tx(scenario, owner);
 		{
 			let obj = test_scenario::take_from_sender_by_id<SimpleWarrior>(scenario, id);
-			let (is_equipped_sword, strength, is_equipped_shiled, armor) = simple_warrior::get_warrior(&obj);
+			let (is_equipped_sword, strength, is_equipped_shield, armor) = simple_warrior::get_warrior(&obj);
 			assert!(!is_equipped_sword, 0);
 			assert!(strength == 0, 0);
-			assert!(!is_equipped_shiled, 0);
+			assert!(!is_equipped_shield, 0);
 			assert!(armor == 0, 0);
 			test_scenario::return_to_sender(scenario, obj);
 		};
