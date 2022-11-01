@@ -20,6 +20,22 @@ module tutorial_simple_warrior::simple_warrior {
 		shield: Option<Shield>
 	}
 
+	public entry fun create_sword(strength: u8, ctx: &mut TxContext) {
+		let sword = Sword {
+			id: object::new(ctx),
+			strength
+		};
+		transfer::transfer(sword, tx_context::sender(ctx))
+	}
+
+	public entry fun create_shield(armor: u8, ctx: &mut TxContext) {
+		let shield = Shield {
+			id: object::new(ctx),
+			armor
+		};
+		transfer::transfer(shield, tx_context::sender(ctx))
+	}
+
 	public entry fun create_warrior(ctx: &mut TxContext) {
 		let obj = SimpleWarrior {
 			id: object::new(ctx),
@@ -47,7 +63,7 @@ module tutorial_simple_warrior::simple_warriorTests {
 	use sui::test_scenario;
 	use sui::object;
 	use sui::tx_context;
-	use tutorial_simple_warrior::simple_warrior::{Self, SimpleWarrior};
+	use tutorial_simple_warrior::simple_warrior::{Self, SimpleWarrior, Sword, Shield};
 
 	#[test]
 	fun test_create_1() {
@@ -57,10 +73,16 @@ module tutorial_simple_warrior::simple_warriorTests {
 		{
 			let ctx = test_scenario::ctx(scenario);
 			simple_warrior::create_warrior(ctx);
+			simple_warrior::create_sword(0, ctx);
+			simple_warrior::create_shield(0, ctx);
 		};
 		test_scenario::end(scenario_val);
 		let owner_warrior = test_scenario::most_recent_id_for_address<SimpleWarrior>(owner);
 		assert!(option::is_some(&owner_warrior), 0);
+		let owner_sword = test_scenario::most_recent_id_for_address<Sword>(owner);
+		assert!(option::is_some(&owner_sword), 0);
+		let owner_shield = test_scenario::most_recent_id_for_address<Shield>(owner);
+		assert!(option::is_some(&owner_shield), 0);
 		let not_owner_warrior = test_scenario::most_recent_id_for_address<SimpleWarrior>(@0x2);
 		assert!(option::is_none(&not_owner_warrior), 0);
 	}
