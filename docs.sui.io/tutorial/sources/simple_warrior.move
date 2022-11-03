@@ -1,4 +1,4 @@
-module tutorial_simple_warrior::simple_warrior {
+module tutorial::simple_warrior {
 	use std::option::{Self, Option};
 	use sui::object::{Self, UID};
 	use sui::transfer;
@@ -74,12 +74,12 @@ module tutorial_simple_warrior::simple_warrior {
 }
 
 #[test_only]
-module tutorial_simple_warrior::simple_warriorTests {
+module tutorial::simple_warriorTests {
 	use std::option;
 	use sui::test_scenario;
 	use sui::object;
 	use sui::tx_context;
-	use tutorial_simple_warrior::simple_warrior::{Self, SimpleWarrior, Sword, Shield};
+	use tutorial::simple_warrior::{Self, SimpleWarrior, Sword, Shield};
 
 	#[test]
 	fun test_create_1() {

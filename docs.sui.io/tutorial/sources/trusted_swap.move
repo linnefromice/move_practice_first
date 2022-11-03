@@ -1,4 +1,4 @@
-module tutorial_trusted_swap::trusted_swap {
+module tutorial::trusted_swap {
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, UID};

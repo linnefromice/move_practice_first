@@ -1,4 +1,4 @@
-module tutorial_color::color_object {
+module tutorial::color_object {
     use sui::object;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
