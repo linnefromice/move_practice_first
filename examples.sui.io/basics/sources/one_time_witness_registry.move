@@ -41,6 +41,11 @@ module basics::my_otw_first {
             ctx
         )
     }
+
+    #[test_only]
+    public fun init_for_test(ctx: &mut TxContext) {
+        init(MY_OTW_FIRST {}, ctx);
+    }
 }
 
 module basics::my_otw_second {
@@ -56,5 +61,42 @@ module basics::my_otw_second {
             string::utf8(b"My awesome record"),
             ctx
         )
+    }
+
+    #[test_only]
+    public fun init_for_test(ctx: &mut TxContext) {
+        init(MY_OTW_SECOND {}, ctx);
+    }
+}
+
+#[test_only]
+module basics::one_time_witness_registryTests {
+    use sui::test_scenario;
+    use basics::one_time_witness_registry::{UniqueTypeRecord};
+    use basics::my_otw_first::{Self, MY_OTW_FIRST};
+    use basics::my_otw_second::{Self, MY_OTW_SECOND};
+
+    #[test]
+    fun test_add_record() {
+        let owner = @0x1;
+        let scenario_val = test_scenario::begin(owner);
+        let scenario = &mut scenario_val;
+        assert!(!test_scenario::has_most_recent_shared<UniqueTypeRecord<MY_OTW_FIRST>>(), 0);
+        assert!(!test_scenario::has_most_recent_shared<UniqueTypeRecord<MY_OTW_SECOND>>(), 0);
+        {
+            let ctx = test_scenario::ctx(scenario);
+            my_otw_first::init_for_test(ctx);
+            my_otw_second::init_for_test(ctx);
+        };
+        // test_scenario::next_tx(scenario, owner);
+        // {
+        //     let otw_first = test_scenario::take_shared<UniqueTypeRecord<MY_OTW_FIRST>>(scenario);
+        //     let otw_second = test_scenario::take_shared<UniqueTypeRecord<MY_OTW_SECOND>>(scenario);
+        //     test_scenario::return_shared(otw_first);
+        //     test_scenario::return_shared(otw_second);
+        // };
+        test_scenario::end(scenario_val);
+        assert!(test_scenario::has_most_recent_shared<UniqueTypeRecord<MY_OTW_FIRST>>(), 0);
+        assert!(test_scenario::has_most_recent_shared<UniqueTypeRecord<MY_OTW_SECOND>>(), 0);
     }
 }
